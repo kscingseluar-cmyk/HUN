@@ -1,5 +1,5 @@
 --[[
-    UNIVERSAL SCRIPT HUB (SYAH HUB V2 - TYPED FLY SPEED)
+    UNIVERSAL SCRIPT HUB (SYAH HUB V2 - FIXED WALL CHECK)
     Optimized for Delta & Mobile Executors
 --]]
 
@@ -51,6 +51,7 @@ local TracerESPEnabled = false
 -- Combat States
 local AimbotEnabled = false
 local AimbotFOV = 150
+local WallCheckEnabled = false
 local FOVCircleVisible = false
 
 -- Teleport Variables
@@ -245,6 +246,13 @@ CombatTab:CreateToggle({
    Callback = function(Value) AimbotEnabled = Value end,
 })
 
+CombatTab:CreateToggle({
+   Name = "Wall Check (Ignore Behind Walls)",
+   CurrentValue = false,
+   Flag = "WallCheckToggle",
+   Callback = function(Value) WallCheckEnabled = Value end,
+})
+
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Thickness = 1.5
 FOVCircle.Color = Color3.fromRGB(255, 0, 0)
@@ -313,6 +321,30 @@ local function GetScreenCenter()
     return Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 end
 
+-- Raycast Wall Check Fix Yang Stabil
+local function IsVisible(targetPart)
+    if not WallCheckEnabled then return true end
+    local origin = Camera.CFrame.Position
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    
+    local excludeList = {}
+    if LocalPlayer.Character then
+        table.insert(excludeList, LocalPlayer.Character)
+    end
+    if targetPart and targetPart.Parent then
+        table.insert(excludeList, targetPart.Parent)
+    end
+    
+    raycastParams.FilterDescendantsInstances = excludeList
+    raycastParams.IgnoreWater = true
+
+    local direction = targetPart.Position - origin
+    local result = workspace:Raycast(origin, direction, raycastParams)
+    
+    return result == nil
+end
+
 local function GetClosestPlayer()
     local closest = nil
     local shortestDistance = AimbotFOV
@@ -320,12 +352,15 @@ local function GetClosestPlayer()
 
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            local pos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
+            local head = player.Character.Head
+            local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
             if onScreen then
                 local distance = (Vector2.new(pos.X, pos.Y) - centerPos).Magnitude
                 if distance < shortestDistance then
-                    shortestDistance = distance
-                    closest = player
+                    if IsVisible(head) then
+                        shortestDistance = distance
+                        closest = player
+                    end
                 end
             end
         end
@@ -530,7 +565,7 @@ Players.PlayerRemoving:Connect(UpdatePlayerDropdown)
 
 TeleportTab:CreateButton({
    Name = "TP to Selected Player",
-   Callback = function()
+   Callback = function`()
       if SelectedPlayerName ~= "" then
           local targetPlayer = Players:FindFirstChild(SelectedPlayerName)
           local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
