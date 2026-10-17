@@ -1,9 +1,16 @@
 --[[
-    UNIVERSAL SCRIPT HUB (SYAH HUB V2 - FIXED WALL CHECK)
+    UNIVERSAL SCRIPT HUB (SYAH HUB V2 - STABLE RAYFIELD)
     Optimized for Delta & Mobile Executors
 --]]
 
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
+
+if not success or not Rayfield then
+    warn("[SYAH HUB] Gagal memuat turun Rayfield utama, mencuba link alternatif...")
+    Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
+end
 
 local Window = Rayfield:CreateWindow({
    Name = "SYAH HUB V2 | Universal",
@@ -321,7 +328,6 @@ local function GetScreenCenter()
     return Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 end
 
--- Raycast Wall Check Fix Yang Stabil
 local function IsVisible(targetPart)
     if not WallCheckEnabled then return true end
     local origin = Camera.CFrame.Position
@@ -565,7 +571,7 @@ Players.PlayerRemoving:Connect(UpdatePlayerDropdown)
 
 TeleportTab:CreateButton({
    Name = "TP to Selected Player",
-   Callback = function`()
+   Callback = function()
       if SelectedPlayerName ~= "" then
           local targetPlayer = Players:FindFirstChild(SelectedPlayerName)
           local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
