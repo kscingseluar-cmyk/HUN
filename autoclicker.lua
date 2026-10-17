@@ -1,9 +1,9 @@
 -- =======================================================
--- ANDROID APP STYLE AUTO CLICKER (MULTI-TARGET FLOATING BAR)
--- Custom built for Mobile Executors (Delta, Codex, Hydrogen)
+-- ANDROID APP STYLE AUTO CLICKER (ACCURATE POSITION FIX)
 -- =======================================================
 
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
@@ -21,11 +21,11 @@ ScreenGui.ResetOnSpawn = false
 
 -- States & Variables
 local IsRunning = false
-local ClickDelay = 0.05 -- Delay asas
-local ClickTargets = {} -- Menyimpan senarai titik/target sasaran
+local ClickDelay = 0.05
+local ClickTargets = {}
 
 -- =======================================================
--- 1. FLOATING CONTROL BAR (SEPERTI BAR APP ANDROID)
+-- 1. FLOATING CONTROL BAR (BAR TERAPUNG)
 -- =======================================================
 local BarFrame = Instance.new("Frame")
 local BarCorner = Instance.new("UICorner")
@@ -47,7 +47,6 @@ UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 UIListLayout.Padding = UDim.new(0, 8)
 
--- Helper untuk Buat Butang pada Bar
 local function CreateBarButton(name, text, color, textScale)
     local Btn = Instance.new("TextButton")
     local Corner = Instance.new("UICorner")
@@ -144,7 +143,7 @@ SaveBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =======================================================
--- 3. TARGET POINT CREATION (SASARAN KLIK BULAT)
+-- 3. TARGET POINT CREATION (SASARAN KLIK)
 -- =======================================================
 local function AddTargetPoint()
     local index = #ClickTargets + 1
@@ -164,7 +163,7 @@ local function AddTargetPoint()
     TargetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     TargetBtn.TextSize = 16
     TargetBtn.Active = true
-    TargetBtn.Draggable = true -- Boleh dialih ke butang dlm game
+    TargetBtn.Draggable = true
 
     TargetCorner.CornerRadius = UDim.new(1, 0)
     TargetCorner.Parent = TargetBtn
@@ -184,7 +183,6 @@ local function RemoveTargetPoint()
     end
 end
 
--- Default: Tambah 1 Target bila di-load
 AddTargetPoint()
 
 AddBtn.MouseButton1Click:Connect(function()
@@ -201,7 +199,7 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =======================================================
--- 4. AUTO CLICKER ENGINE (PROSES KLIK)
+-- 4. ACCURATE AUTO CLICK ENGINE (PEMBETULAN POSISI)
 -- =======================================================
 PlayBtn.MouseButton1Click:Connect(function()
     IsRunning = not IsRunning
@@ -210,32 +208,28 @@ PlayBtn.MouseButton1Click:Connect(function()
         PlayBtn.Text = "⏸"
         PlayBtn.BackgroundColor3 = Color3.fromRGB(230, 50, 50)
         
-        -- Loop Klik Utama
         task.spawn(function()
             while IsRunning do
                 if #ClickTargets > 0 then
                     for _, target in ipairs(ClickTargets) do
                         if not IsRunning then break end
                         
-                        -- Dapatkan Posisi Sasaran di Skrin Telefon
-                        local x = target.AbsolutePosition.X + (target.AbsoluteSize.X / 2)
-                        local y = target.AbsolutePosition.Y + (target.AbsoluteSize.Y / 2)
+                        -- Dapatkan offset TopBar skrin Roblox
+                        local inset = GuiService:GetGuiInset()
                         
-                        -- Simulasi Klik pada koordinat Target
+                        -- Kira titik tepat di tengah bulatan target
+                        local x = target.AbsolutePosition.X + (target.AbsoluteSize.X / 2) + inset.X
+                        local y = target.AbsolutePosition.Y + (target.AbsoluteSize.Y / 2) + inset.Y
+                        
+                        -- Hantar acara klik tepat pada koordinat
                         VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 0)
                         VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 0)
                         
                         task.wait(ClickDelay)
                     end
-                else
-                    -- Jika tiada target, klik tengah skrin
-                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                    task.wait(ClickDelay)
                 end
             end
             
-            -- Reset Butang Play bila berhenti
             PlayBtn.Text = "▶"
             PlayBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
         end)
