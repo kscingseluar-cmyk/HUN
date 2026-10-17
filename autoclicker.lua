@@ -1,145 +1,246 @@
 -- =======================================================
--- CUSTOM AUTO CLICKER HUB (MADE FROM SCRATCH)
+-- ANDROID APP STYLE AUTO CLICKER (MULTI-TARGET FLOATING BAR)
+-- Custom built for Mobile Executors (Delta, Codex, Hydrogen)
 -- =======================================================
 
--- Load UI Library (Fluent UI - Tampilan Modern & Cantik)
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-
--- Buat Window Utama
-local Window = Fluent:CreateWindow({
-    Title = "⚡ Multi Clicker Hub",
-    SubTitle = "by YourName",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 400),
-    Acrylic = true, -- Efek Blur Cantik
-    Theme = "Dark", -- Pilihan: Dark, Light, Vivid, Midnight, Aqua
-    MinimizeKey = Enum.KeyCode.LeftControl
-})
-
--- =======================================================
--- VARIABEL & UTILITY
--- =======================================================
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
--- States Toggle
-local AutoClickerEnabled = false
-local FastClickerEnabled = false
-local ToolClickerEnabled = false
+-- Clean up old instance
+if CoreGui:FindFirstChild("AppAutoClickerHub") then
+    CoreGui:FindFirstChild("AppAutoClickerHub"):Destroy()
+end
 
--- Settings
-local ClickDelay = 0.1
-local FastClickDelay = 0.01
+-- ScreenGui Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AppAutoClickerHub"
+ScreenGui.Parent = CoreGui or LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+-- States & Variables
+local IsRunning = false
+local ClickDelay = 0.05 -- Delay asas
+local ClickTargets = {} -- Menyimpan senarai titik/target sasaran
 
 -- =======================================================
--- TABS UI
+-- 1. FLOATING CONTROL BAR (SEPERTI BAR APP ANDROID)
 -- =======================================================
-local Tabs = {
-    Main = Window:AddTab({ Title = "Main Clicker", Icon = "mouse-pointer" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
-}
+local BarFrame = Instance.new("Frame")
+local BarCorner = Instance.new("UICorner")
+local UIListLayout = Instance.new("UIListLayout")
+
+BarFrame.Name = "ControlBar"
+BarFrame.Parent = ScreenGui
+BarFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+BarFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
+BarFrame.Size = UDim2.new(0, 48, 0, 220)
+BarFrame.Active = true
+BarFrame.Draggable = true
+
+BarCorner.CornerRadius = UDim.new(0, 12)
+BarCorner.Parent = BarFrame
+
+UIListLayout.Parent = BarFrame
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+UIListLayout.Padding = UDim.new(0, 8)
+
+-- Helper untuk Buat Butang pada Bar
+local function CreateBarButton(name, text, color, textScale)
+    local Btn = Instance.new("TextButton")
+    local Corner = Instance.new("UICorner")
+
+    Btn.Name = name
+    Btn.Parent = BarFrame
+    Btn.BackgroundColor3 = color
+    Btn.Size = UDim2.new(0, 36, 0, 36)
+    Btn.Font = Enum.Font.GothamBold
+    Btn.Text = text
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.TextSize = textScale or 18
+
+    Corner.CornerRadius = UDim.new(0, 8)
+    Corner.Parent = Btn
+
+    return Btn
+end
+
+local PlayBtn = CreateBarButton("PlayBtn", "▶", Color3.fromRGB(0, 200, 100), 16)
+local AddBtn = CreateBarButton("AddBtn", "+", Color3.fromRGB(0, 150, 255), 22)
+local SubBtn = CreateBarButton("SubBtn", "-", Color3.fromRGB(230, 140, 0), 24)
+local SettingsBtn = CreateBarButton("SettingsBtn", "⚙", Color3.fromRGB(120, 120, 130), 18)
+local CloseBtn = CreateBarButton("CloseBtn", "✕", Color3.fromRGB(220, 50, 50), 16)
 
 -- =======================================================
--- TAB 1: MAIN CLICKER
+-- 2. SETTINGS POPUP FRAME
 -- =======================================================
+local SettingsFrame = Instance.new("Frame")
+local SettingsCorner = Instance.new("UICorner")
+local SettingsTitle = Instance.new("TextLabel")
+local DelayInput = Instance.new("TextBox")
+local SaveBtn = Instance.new("TextButton")
 
--- 1. Standard Auto Clicker (Virtual Mouse Click)
-local Toggle1 = Tabs.Main:AddToggle("AutoClicker", {Title = "Standard Auto Clicker", Default = false})
-Toggle1:OnChanged(function(Value)
-    AutoClickerEnabled = Value
-    if AutoClickerEnabled then
-        task.spawn(function()
-            while AutoClickerEnabled do
-                -- Simulasi Klik Kiri Mouse di Tengah Layar
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                task.wait(ClickDelay)
-            end
-        end)
-    end
+SettingsFrame.Name = "SettingsFrame"
+SettingsFrame.Parent = ScreenGui
+SettingsFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+SettingsFrame.Position = UDim2.new(0.5, -100, 0.4, -60)
+SettingsFrame.Size = UDim2.new(0, 200, 0, 120)
+SettingsFrame.Visible = false
+SettingsFrame.Active = true
+SettingsFrame.Draggable = true
+
+SettingsCorner.CornerRadius = UDim.new(0, 10)
+SettingsCorner.Parent = SettingsFrame
+
+SettingsTitle.Parent = SettingsFrame
+SettingsTitle.BackgroundTransparency = 1
+SettingsTitle.Position = UDim2.new(0, 10, 0, 10)
+SettingsTitle.Size = UDim2.new(0, 180, 0, 20)
+SettingsTitle.Font = Enum.Font.GothamBold
+SettingsTitle.Text = "⚙ Click Delay (Saat)"
+SettingsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+SettingsTitle.TextSize = 13
+
+DelayInput.Parent = SettingsFrame
+DelayInput.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+DelayInput.Position = UDim2.new(0, 15, 0, 38)
+DelayInput.Size = UDim2.new(0, 170, 0, 30)
+DelayInput.Font = Enum.Font.GothamBold
+DelayInput.Text = tostring(ClickDelay)
+DelayInput.TextColor3 = Color3.fromRGB(0, 255, 150)
+DelayInput.TextSize = 14
+
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 6)
+InputCorner.Parent = DelayInput
+
+SaveBtn.Parent = SettingsFrame
+SaveBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+SaveBtn.Position = UDim2.new(0, 15, 0, 75)
+SaveBtn.Size = UDim2.new(0, 170, 0, 30)
+SaveBtn.Font = Enum.Font.GothamBold
+SaveBtn.Text = "Simpan"
+SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SaveBtn.TextSize = 13
+
+local SaveCorner = Instance.new("UICorner")
+SaveCorner.CornerRadius = UDim.new(0, 6)
+SaveCorner.Parent = SaveBtn
+
+SettingsBtn.MouseButton1Click:Connect(function()
+    SettingsFrame.Visible = not SettingsFrame.Visible
 end)
 
--- 2. Fast / Ultra Clicker
-local Toggle2 = Tabs.Main:AddToggle("FastClicker", {Title = "⚡ Ultra Fast Clicker", Default = false})
-Toggle2:OnChanged(function(Value)
-    FastClickerEnabled = Value
-    if FastClickerEnabled then
-        task.spawn(function()
-            while FastClickerEnabled do
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                task.wait(FastClickDelay)
-            end
-        end)
+SaveBtn.MouseButton1Click:Connect(function()
+    local val = tonumber(DelayInput.Text)
+    if val and val > 0 then
+        ClickDelay = val
+    else
+        DelayInput.Text = tostring(ClickDelay)
     end
+    SettingsFrame.Visible = false
 end)
 
--- 3. Tool / Equip Clicker (Aktivasi Item di Hand)
-local Toggle3 = Tabs.Main:AddToggle("ToolClicker", {Title = "Equipped Tool Clicker", Default = false})
-Toggle3:OnChanged(function(Value)
-    ToolClickerEnabled = Value
-    if ToolClickerEnabled then
+-- =======================================================
+-- 3. TARGET POINT CREATION (SASARAN KLIK BULAT)
+-- =======================================================
+local function AddTargetPoint()
+    local index = #ClickTargets + 1
+    
+    local TargetBtn = Instance.new("TextButton")
+    local TargetCorner = Instance.new("UICorner")
+    local TargetStroke = Instance.new("UIStroke")
+
+    TargetBtn.Name = "TargetPoint_" .. index
+    TargetBtn.Parent = ScreenGui
+    TargetBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    TargetBtn.BackgroundTransparency = 0.4
+    TargetBtn.Position = UDim2.new(0.3 + (index * 0.05), 0, 0.4, 0)
+    TargetBtn.Size = UDim2.new(0, 42, 0, 42)
+    TargetBtn.Font = Enum.Font.GothamBold
+    TargetBtn.Text = tostring(index)
+    TargetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TargetBtn.TextSize = 16
+    TargetBtn.Active = true
+    TargetBtn.Draggable = true -- Boleh dialih ke butang dlm game
+
+    TargetCorner.CornerRadius = UDim.new(1, 0)
+    TargetCorner.Parent = TargetBtn
+
+    TargetStroke.Thickness = 2
+    TargetStroke.Color = Color3.fromRGB(255, 255, 255)
+    TargetStroke.Parent = TargetBtn
+
+    table.insert(ClickTargets, TargetBtn)
+end
+
+local function RemoveTargetPoint()
+    if #ClickTargets > 0 then
+        local lastIndex = #ClickTargets
+        ClickTargets[lastIndex]:Destroy()
+        table.remove(ClickTargets, lastIndex)
+    end
+end
+
+-- Default: Tambah 1 Target bila di-load
+AddTargetPoint()
+
+AddBtn.MouseButton1Click:Connect(function()
+    AddTargetPoint()
+end)
+
+SubBtn.MouseButton1Click:Connect(function()
+    RemoveTargetPoint()
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    IsRunning = false
+    ScreenGui:Destroy()
+end)
+
+-- =======================================================
+-- 4. AUTO CLICKER ENGINE (PROSES KLIK)
+-- =======================================================
+PlayBtn.MouseButton1Click:Connect(function()
+    IsRunning = not IsRunning
+
+    if IsRunning then
+        PlayBtn.Text = "⏸"
+        PlayBtn.BackgroundColor3 = Color3.fromRGB(230, 50, 50)
+        
+        -- Loop Klik Utama
         task.spawn(function()
-            while ToolClickerEnabled do
-                local Character = LocalPlayer.Character
-                if Character then
-                    local Tool = Character:FindFirstChildOfClass("Tool")
-                    if Tool then
-                        Tool:Activate()
+            while IsRunning do
+                if #ClickTargets > 0 then
+                    for _, target in ipairs(ClickTargets) do
+                        if not IsRunning then break end
+                        
+                        -- Dapatkan Posisi Sasaran di Skrin Telefon
+                        local x = target.AbsolutePosition.X + (target.AbsoluteSize.X / 2)
+                        local y = target.AbsolutePosition.Y + (target.AbsoluteSize.Y / 2)
+                        
+                        -- Simulasi Klik pada koordinat Target
+                        VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 0)
+                        VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 0)
+                        
+                        task.wait(ClickDelay)
                     end
+                else
+                    -- Jika tiada target, klik tengah skrin
+                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                    task.wait(ClickDelay)
                 end
-                task.wait(ClickDelay)
             end
+            
+            -- Reset Butang Play bila berhenti
+            PlayBtn.Text = "▶"
+            PlayBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
         end)
+    else
+        PlayBtn.Text = "▶"
+        PlayBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
     end
 end)
-
--- =======================================================
--- TAB 2: SETTINGS (Pengaturan Kecepatan)
--- =======================================================
-
--- Slider Kecepatan Clicker Biasa
-local Slider1 = Tabs.Settings:AddSlider("ClickDelaySlider", {
-    Title = "Standard Click Delay (Detik)",
-    Description = "Semakin kecil angka, semakin cepat kliknya",
-    Default = 0.1,
-    Min = 0.01,
-    Max = 1,
-    Rounding = 2,
-    Callback = function(Value)
-        ClickDelay = Value
-    end
-})
-
--- Slider Kecepatan Ultra Clicker
-local Slider2 = Tabs.Settings:AddSlider("FastClickDelaySlider", {
-    Title = "Ultra Click Delay (Detik)",
-    Description = "Rekomendasi 0.001 - 0.01",
-    Default = 0.01,
-    Min = 0.001,
-    Max = 0.1,
-    Rounding = 3,
-    Callback = function(Value)
-        FastClickDelay = Value
-    end
-})
-
--- Pilihan Tema UI (Biarkan Tampilan Tetap Cantik Sesuai Selera)
-local DropdownTheme = Tabs.Settings:AddDropdown("ThemeDropdown", {
-    Title = "Ubah Warna / Tema Hub",
-    Values = {"Dark", "Light", "Vivid", "Midnight", "Aqua", "Rose"},
-    Default = "Dark",
-    Callback = function(Value)
-        Window:SetTheme(Value)
-    end
-})
-
--- Notifikasi saat script berhasil di-load
-Fluent:Notify({
-    Title = "Multi Clicker Loaded!",
-    Content = "Tekan CTRL Kiri untuk menyembunyikan/membuka Hub.",
-    Duration = 5
-})
-
-Window:SelectTab(1)
