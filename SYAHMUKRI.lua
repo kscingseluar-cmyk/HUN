@@ -1,5 +1,5 @@
 --[[
-    UNIVERSAL SCRIPT HUB (SYAH HUB V3.8 - FIXED INVISIBLE & STABLE)
+    UNIVERSAL SCRIPT HUB (SYAH HUB V3.9 - FULL ENGLISH & NUMERIC INPUT)
     Optimized for Delta Mobile Executor
 --]]
 
@@ -15,7 +15,7 @@ if not success or not Rayfield then
 end
 
 if not Rayfield then
-    warn("[SYAH HUB] Gagal memuat turun Rayfield UI Library!")
+    warn("[SYAH HUB] Failed to load Rayfield UI Library!")
     return
 end
 
@@ -29,7 +29,7 @@ local Lighting = game:GetService("Lighting")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Camera = workspace.CurrentCamera
 
--- Dapatkan Nama Game
+-- Get Game Title
 local gameName = "Universal Game"
 pcall(function()
     local info = MarketplaceService:GetProductInfo(game.PlaceId)
@@ -39,8 +39,8 @@ pcall(function()
 end)
 
 local Window = Rayfield:CreateWindow({
-   Name = "SYAH HUB V3.8 | " .. gameName,
-   LoadingTitle = "SYAH HUB V3.8 Loading...",
+   Name = "SYAH HUB V3.9 | " .. gameName,
+   LoadingTitle = "SYAH HUB V3.9 Loading...",
    LoadingSubtitle = "Game: " .. gameName .. " | by Syah",
    ConfigurationSaving = { Enabled = false },
    Discord = { Enabled = false },
@@ -130,7 +130,7 @@ MainTab:CreateSection("Custom Speed & Jump")
 
 MainTab:CreateInput({
    Name = "WalkSpeed",
-   PlaceholderText = "16",
+   PlaceholderText = "Default: 16",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text)
       local num = tonumber(Text)
@@ -142,7 +142,7 @@ MainTab:CreateInput({
 
 MainTab:CreateInput({
    Name = "JumpPower",
-   PlaceholderText = "50",
+   PlaceholderText = "Default: 50",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text)
       local num = tonumber(Text)
@@ -154,11 +154,10 @@ MainTab:CreateInput({
    end,
 })
 
-MainTab:CreateSection("Stealth & Invisibility (Desync Method)")
+MainTab:CreateSection("Stealth & Invisibility")
 
--- PERBAIKAN INVISIBLE MODE (FE SAFE DESYNC)
 MainTab:CreateToggle({
-   Name = "Invisible Mode (Halimunan)",
+   Name = "Invisible Mode",
    CurrentValue = false,
    Flag = "InvisibleToggle",
    Callback = function(Value)
@@ -169,12 +168,11 @@ MainTab:CreateToggle({
       pcall(function()
           local hrp = char:FindFirstChild("HumanoidRootPart")
           if InvisibleEnabled and hrp then
-              -- Pindahkan CFrame secara tempatan untuk menyembunyikan badan
               local oldCF = hrp.CFrame
               char:MoveTo(Vector3.new(0, -1000, 0))
               task.wait(0.1)
               hrp.CFrame = oldCF
-              Rayfield:Notify({ Title = "Invisibility", Content = "Invisible Active (Desync)!", Duration = 2 })
+              Rayfield:Notify({ Title = "Invisibility", Content = "Invisible Active!", Duration = 2 })
           else
               Rayfield:Notify({ Title = "Invisibility", Content = "Invisible Disabled!", Duration = 2 })
           end
@@ -182,7 +180,6 @@ MainTab:CreateToggle({
    end,
 })
 
--- Sembunyikan bahagian badan tempatan (Transparency)
 RunService.RenderStepped:Connect(function()
     if InvisibleEnabled and LocalPlayer.Character then
         pcall(function()
@@ -201,15 +198,13 @@ end)
 
 MainTab:CreateSection("Camera FOV Changer")
 
-MainTab:CreateSlider({
+MainTab:CreateInput({
    Name = "Camera FOV",
-   Range = {70, 120},
-   Increment = 1,
-   Suffix = "FOV",
-   CurrentValue = 70,
-   Flag = "CamFOV",
-   Callback = function(Value)
-      Camera.FieldOfView = Value
+   PlaceholderText = "70 - 120 (Default: 70)",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then Camera.FieldOfView = num end
    end,
 })
 
@@ -217,7 +212,7 @@ MainTab:CreateSection("Fly Engine")
 
 MainTab:CreateInput({
    Name = "Fly Speed",
-   PlaceholderText = "50",
+   PlaceholderText = "Enter speed (Default: 50)",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text)
       local num = tonumber(Text)
@@ -301,7 +296,7 @@ end)
 MainTab:CreateSection("Physics Modifications")
 
 MainTab:CreateToggle({
-   Name = "Noclip (Tembus Dinding)",
+   Name = "Noclip (Walk Through Walls)",
    CurrentValue = false,
    Flag = "NoclipToggle",
    Callback = function(Value) NoclipEnabled = Value end,
@@ -350,14 +345,14 @@ CombatTab:CreateToggle({
 })
 
 CombatTab:CreateToggle({
-   Name = "Team Check (Abaikan Kawan)",
+   Name = "Team Check (Ignore Teammates)",
    CurrentValue = false,
    Flag = "TeamCheckToggle",
    Callback = function(Value) TeamCheckEnabled = Value end,
 })
 
 CombatTab:CreateToggle({
-   Name = "Wall Check (Abaikan Belakang Dinding)",
+   Name = "Wall Check (Ignore Behind Walls)",
    CurrentValue = false,
    Flag = "WallCheckToggle",
    Callback = function(Value) WallCheckEnabled = Value end,
@@ -414,16 +409,16 @@ UpdateAimbotPlayerDropdown()
 Players.PlayerAdded:Connect(UpdateAimbotPlayerDropdown)
 Players.PlayerRemoving:Connect(UpdateAimbotPlayerDropdown)
 
-CombatTab:CreateSlider({
-   Name = "FOV Radius",
-   Range = {50, 500},
-   Increment = 5,
-   Suffix = "px",
-   CurrentValue = 150,
-   Flag = "FOVRadiusSlider",
-   Callback = function(Value)
-      AimbotFOV = Value
-      FOVFrame.Size = UDim2.new(0, Value * 2, 0, Value * 2)
+CombatTab:CreateInput({
+   Name = "FOV Radius (Pixels)",
+   PlaceholderText = "50 - 500 (Default: 150)",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then
+          AimbotFOV = num
+          FOVFrame.Size = UDim2.new(0, num * 2, 0, num * 2)
+      end
    end,
 })
 
@@ -446,14 +441,14 @@ CombatTab:CreateDropdown({
    end,
 })
 
-CombatTab:CreateSlider({
-   Name = "Hitbox Size",
-   Range = {2, 40},
-   Increment = 1,
-   Suffix = "Studs",
-   CurrentValue = 10,
-   Flag = "HitboxSizeSlider",
-   Callback = function(Value) HitboxSize = Value end,
+CombatTab:CreateInput({
+   Name = "Hitbox Size (Studs)",
+   PlaceholderText = "2 - 40 (Default: 10)",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then HitboxSize = num end
+   end,
 })
 
 task.spawn(function()
@@ -763,14 +758,14 @@ MiscTab:CreateToggle({
    Callback = function(Value) AutoClickerEnabled = Value end,
 })
 
-MiscTab:CreateSlider({
-   Name = "Click Speed (Clicks per sec)",
-   Range = {1, 30},
-   Increment = 1,
-   Suffix = "CPS",
-   CurrentValue = 10,
-   Flag = "AutoClickerCPS",
-   Callback = function(Value) AutoClickerCPS = Value end,
+MiscTab:CreateInput({
+   Name = "Click Speed (Clicks Per Second)",
+   PlaceholderText = "1 - 30 (Default: 10)",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then AutoClickerCPS = num end
+   end,
 })
 
 task.spawn(function()
@@ -802,14 +797,14 @@ MiscTab:CreateToggle({
    Callback = function(Value) SpinbotEnabled = Value end,
 })
 
-MiscTab:CreateSlider({
+MiscTab:CreateInput({
    Name = "Spin Speed",
-   Range = {10, 200},
-   Increment = 10,
-   Suffix = "Speed",
-   CurrentValue = 50,
-   Flag = "SpinSpeedSlider",
-   Callback = function(Value) SpinSpeed = Value end,
+   PlaceholderText = "10 - 200 (Default: 50)",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then SpinSpeed = num end
+   end,
 })
 
 RunService.RenderStepped:Connect(function()
@@ -843,7 +838,7 @@ MiscTab:CreateButton({
 MiscTab:CreateSection("Server Utilities")
 
 MiscTab:CreateButton({
-   Name = "Server Hop (Cari Server Lain)",
+   Name = "Server Hop (Join Another Server)",
    Callback = function()
       pcall(function()
           local HttpService = game:GetService("HttpService")
@@ -873,7 +868,7 @@ MiscTab:CreateButton({
 })
 
 MiscTab:CreateButton({
-   Name = "Anti-AFK (Elak Kena Kick)",
+   Name = "Anti-AFK (Prevent Idle Kick)",
    Callback = function()
       pcall(function()
           local VirtualUser = game:GetService("VirtualUser")
