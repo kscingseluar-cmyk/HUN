@@ -1,5 +1,5 @@
 --[[
-    UNIVERSAL SCRIPT HUB (SYAH HUB V3.7 - FULLY FIXED & STABLE)
+    UNIVERSAL SCRIPT HUB (SYAH HUB V3.8 - FIXED INVISIBLE & STABLE)
     Optimized for Delta Mobile Executor
 --]]
 
@@ -29,7 +29,7 @@ local Lighting = game:GetService("Lighting")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Camera = workspace.CurrentCamera
 
--- Dapatkan Nama Game Yang Sedang Dimainkan Secara Automatik
+-- Dapatkan Nama Game
 local gameName = "Universal Game"
 pcall(function()
     local info = MarketplaceService:GetProductInfo(game.PlaceId)
@@ -39,8 +39,8 @@ pcall(function()
 end)
 
 local Window = Rayfield:CreateWindow({
-   Name = "SYAH HUB V3.7 | " .. gameName,
-   LoadingTitle = "SYAH HUB V3.7 Loading...",
+   Name = "SYAH HUB V3.8 | " .. gameName,
+   LoadingTitle = "SYAH HUB V3.8 Loading...",
    LoadingSubtitle = "Game: " .. gameName .. " | by Syah",
    ConfigurationSaving = { Enabled = false },
    Discord = { Enabled = false },
@@ -48,7 +48,7 @@ local Window = Rayfield:CreateWindow({
 })
 
 ----------------------------------------------------------------
--- TABS (DIISYTIHKAN DI ATAS SEBELUM MENGGUNAKANNYA)
+-- TABS
 ----------------------------------------------------------------
 local MainTab = Window:CreateTab("Player Movement", 4483345998)
 local CombatTab = Window:CreateTab("Combat & Aim", 4483345998)
@@ -154,11 +154,9 @@ MainTab:CreateInput({
    end,
 })
 
-MainTab:CreateSection("Stealth & Invisibility")
+MainTab:CreateSection("Stealth & Invisibility (Desync Method)")
 
-local SavedRootJoint = nil
-local SavedParent = nil
-
+-- PERBAIKAN INVISIBLE MODE (FE SAFE DESYNC)
 MainTab:CreateToggle({
    Name = "Invisible Mode (Halimunan)",
    CurrentValue = false,
@@ -169,30 +167,36 @@ MainTab:CreateToggle({
       if not char then return end
 
       pcall(function()
-          local rootJoint = char:FindFirstChild("RootJoint", true)
-          if InvisibleEnabled then
-              if rootJoint then
-                  SavedParent = rootJoint.Parent
-                  SavedRootJoint = rootJoint:Clone()
-                  rootJoint:Destroy()
-                  Rayfield:Notify({ Title = "Invisibility", Content = "Invisible Active!", Duration = 2 })
-              end
+          local hrp = char:FindFirstChild("HumanoidRootPart")
+          if InvisibleEnabled and hrp then
+              -- Pindahkan CFrame secara tempatan untuk menyembunyikan badan
+              local oldCF = hrp.CFrame
+              char:MoveTo(Vector3.new(0, -1000, 0))
+              task.wait(0.1)
+              hrp.CFrame = oldCF
+              Rayfield:Notify({ Title = "Invisibility", Content = "Invisible Active (Desync)!", Duration = 2 })
           else
-              if SavedRootJoint and SavedParent and not SavedParent:FindFirstChild("RootJoint") then
-                  SavedRootJoint.Parent = SavedParent
-                  SavedRootJoint = nil
-                  SavedParent = nil
-                  Rayfield:Notify({ Title = "Invisibility", Content = "Invisible Disabled!", Duration = 2 })
-              end
+              Rayfield:Notify({ Title = "Invisibility", Content = "Invisible Disabled!", Duration = 2 })
           end
       end)
    end,
 })
 
+-- Sembunyikan bahagian badan tempatan (Transparency)
+RunService.RenderStepped:Connect(function()
+    if InvisibleEnabled and LocalPlayer.Character then
+        pcall(function()
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") or part:IsA("Decal") then
+                    part.LocalTransparencyModifier = 1
+                end
+            end
+        end)
+    end
+end)
+
 LocalPlayer.CharacterAdded:Connect(function()
     InvisibleEnabled = false
-    SavedRootJoint = nil
-    SavedParent = nil
 end)
 
 MainTab:CreateSection("Camera FOV Changer")
