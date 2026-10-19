@@ -1,5 +1,5 @@
 --[[
-    UNIVERSAL SCRIPT HUB (SYAH HUB V6.4 - REAL SCRIPTBLOX CLEAR FIX)
+    UNIVERSAL SCRIPT HUB (SYAH HUB V6.7 - SEARCH ONLY & 50 LIMIT)
     Optimized for All Roblox Executors (Mobile & PC)
 --]]
 
@@ -42,7 +42,7 @@ pcall(function()
 end)
 
 local Window = Rayfield:CreateWindow({
-   Name = "SYAH HUB V6.4",
+   Name = "SYAH HUB V6.7",
    LoadingTitle = "SYAH HUB Loading...",
    LoadingSubtitle = "Game: " .. gameName .. " | ScriptBlox Integrated",
    ConfigurationSaving = { Enabled = false },
@@ -194,123 +194,107 @@ UIStroke.Thickness = 1.5
 UIStroke.Parent = ScreenGui
 
 ----------------------------------------------------------------
--- TAB 2: SCRIPTBLOX SEARCH (FIXED INSTANT CLEAR & SINGLE SEARCH BAR)
+-- TAB 2: SCRIPTBLOX SEARCH (NO CLEAR BUTTON - DIRECT 50 REBUILD)
 ----------------------------------------------------------------
-ScriptBloxTab:CreateSection("ScriptBlox Live Search Engine")
-
 local SearchQuery = ""
-local CreatedScriptElements = {} -- Array untuk simpan dan wipe out elemen lama
 
-local function ClearPreviousScriptBloxResults()
-    for _, element in ipairs(CreatedScriptElements) do
-        pcall(function()
-            if element and typeof(element) == "Instance" then
-                element:Destroy()
-            elseif element and type(element) == "table" and element.Destroy then
-                element:Destroy()
-            end
-        end)
-    end
-    CreatedScriptElements = {}
-end
+local function BuildScriptBloxUI(scriptsList)
+    pcall(function()
+        ScriptBloxTab:Empty()
+    end)
 
-ScriptBloxTab:CreateInput({
-   Name = "Search Query",
-   PlaceholderText = "Type game name or script (e.g. Rivals, Fly)",
-   RemoveTextAfterFocusLost = false,
-   Callback = function(Text)
-      SearchQuery = Text
-   end,
-})
+    ScriptBloxTab:CreateSection("ScriptBlox Live Search Engine")
 
-ScriptBloxTab:CreateButton({
-   Name = "🔍 Search ScriptBlox Database",
-   Callback = function()
-      if SearchQuery == "" then
-          Rayfield:Notify({ Title = "ScriptBlox", Content = "Please enter a search term first!", Duration = 3 })
-          return
-      end
+    ScriptBloxTab:CreateInput({
+       Name = "Search Query",
+       PlaceholderText = "Type game name or script (e.g. Rivals, Fly)",
+       RemoveTextAfterFocusLost = false,
+       Callback = function(Text)
+          SearchQuery = Text
+       end,
+    })
 
-      Rayfield:Notify({Title = "ScriptBlox API", Content = "Searching for: " .. SearchQuery .. "...", Duration = 2})
+    ScriptBloxTab:CreateButton({
+       Name = "🔍 Search ScriptBlox Database",
+       Callback = function()
+          if SearchQuery == "" then
+              Rayfield:Notify({ Title = "ScriptBlox", Content = "Please enter a search term first!", Duration = 3 })
+              return
+          end
 
-      task.spawn(function()
-          local apiUrl = "https://scriptblox.com/api/script/search?q=" .. HttpService:UrlEncode(SearchQuery) .. "&max=50"
-          local success, response = pcall(function()
-              return game:HttpGet(apiUrl)
-          end)
+          Rayfield:Notify({Title = "ScriptBlox API", Content = "Searching for: " .. SearchQuery .. "...", Duration = 2})
 
-          if success and response then
-              local decodeSuccess, data = pcall(function()
-                  return HttpService:JSONDecode(response)
+          task.spawn(function()
+              -- Tetapkan had maksimum 50 skrip
+              local apiUrl = "https://scriptblox.com/api/script/search?q=" .. HttpService:UrlEncode(SearchQuery) .. "&max=50"
+              local success, response = pcall(function()
+                  return game:HttpGet(apiUrl)
               end)
 
-              if decodeSuccess and data and data.result and data.result.scripts then
-                  local scriptsList = data.result.scripts
-                  if #scriptsList == 0 then
-                      Rayfield:Notify({ Title = "ScriptBlox", Content = "No scripts found for: " .. SearchQuery, Duration = 3 })
-                      return
+              if success and response then
+                  local decodeSuccess, data = pcall(function()
+                      return HttpService:JSONDecode(response)
+                  end)
+
+                  if decodeSuccess and data and data.result and data.result.scripts then
+                      local list = data.result.scripts
+                      if #list == 0 then
+                          Rayfield:Notify({ Title = "ScriptBlox", Content = "No scripts found for: " .. SearchQuery, Duration = 3 })
+                          return
+                      end
+                      BuildScriptBloxUI(list)
+                      Rayfield:Notify({ Title = "Success", Content = "Loaded " .. math.min(#list, 50) .. " scripts!", Duration = 3 })
+                  else
+                      Rayfield:Notify({ Title = "ScriptBlox Error", Content = "Failed to parse ScriptBlox response.", Duration = 3 })
                   end
-
-                  local limitCount = math.min(#scriptsList, 50)
-
-                  -- Padam SEMUA senarai butang skrip lama tanpa kacau kotak search kat atas
-                  ClearPreviousScriptBloxResults()
-
-                  local ResultsSection = ScriptBloxTab:CreateSection("Search Results (" .. limitCount .. " Found - Max 50)")
-                  table.insert(CreatedScriptElements, ResultsSection)
-
-                  for i = 1, limitCount do
-                      local scriptData = scriptsList[i]
-                      local title = scriptData.title or "Unknown Script"
-                      local scriptCode = scriptData.script or ""
-                      local isKeyRequired = scriptData.key and " [KEY REQUIRED]" or " [NO KEY]"
-
-                      local RunBtn = ScriptBloxTab:CreateButton({
-                         Name = i .. ". Run: " .. title .. isKeyRequired,
-                         Callback = function()
-                            if scriptCode ~= "" then
-                                Rayfield:Notify({ Title = "Executing Script", Content = "Running " .. title, Duration = 2 })
-                                pcall(function()
-                                    loadstring(scriptCode)()
-                                end)
-                            else
-                                Rayfield:Notify({ Title = "Error", Content = "Script code is empty!", Duration = 2 })
-                            end
-                         end,
-                      })
-                      table.insert(CreatedScriptElements, RunBtn)
-
-                      local CopyBtn = ScriptBloxTab:CreateButton({
-                         Name = "📋 Copy Script Code #" .. i,
-                         Callback = function()
-                            if scriptCode ~= "" and setclipboard then
-                                setclipboard(scriptCode)
-                                Rayfield:Notify({ Title = "Copied!", Content = "Script code copied to clipboard!", Duration = 2 })
-                            else
-                                Rayfield:Notify({ Title = "Error", Content = "Clipboard function not supported or empty!", Duration = 2 })
-                            end
-                         end,
-                      })
-                      table.insert(CreatedScriptElements, CopyBtn)
-                  end
-                  Rayfield:Notify({ Title = "Success", Content = "Loaded " .. limitCount .. " scripts!", Duration = 3 })
               else
-                  Rayfield:Notify({ Title = "ScriptBlox Error", Content = "Failed to parse ScriptBlox response.", Duration = 3 })
+                  Rayfield:Notify({ Title = "ScriptBlox Error", Content = "HTTP Request failed.", Duration = 3 })
               end
-          else
-              Rayfield:Notify({ Title = "ScriptBlox Error", Content = "HTTP Request failed. ScriptBlox API might be down.", Duration = 3 })
-          end
-      end)
-   end,
-})
+          end)
+       end,
+    })
 
-ScriptBloxTab:CreateButton({
-   Name = "🗑️ Clear Search Results",
-   Callback = function()
-      ClearPreviousScriptBloxResults()
-      Rayfield:Notify({ Title = "ScriptBlox", Content = "All search results cleared!", Duration = 2 })
-   end,
-})
+    if scriptsList and #scriptsList > 0 then
+        local count = math.min(#scriptsList, 50)
+        ScriptBloxTab:CreateSection("Search Results (" .. count .. " Found - Max 50)")
+
+        for i = 1, count do
+            local scriptData = scriptsList[i]
+            local title = scriptData.title or "Unknown Script"
+            local scriptCode = scriptData.script or ""
+            local isKeyRequired = scriptData.key and " [KEY REQUIRED]" or " [NO KEY]"
+
+            ScriptBloxTab:CreateButton({
+               Name = i .. ". Run: " .. title .. isKeyRequired,
+               Callback = function()
+                  if scriptCode ~= "" then
+                      Rayfield:Notify({ Title = "Executing Script", Content = "Running " .. title, Duration = 2 })
+                      pcall(function()
+                          loadstring(scriptCode)()
+                      end)
+                  else
+                      Rayfield:Notify({ Title = "Error", Content = "Script code is empty!", Duration = 2 })
+                  end
+               end,
+            })
+
+            ScriptBloxTab:CreateButton({
+               Name = "📋 Copy Script Code #" .. i,
+               Callback = function()
+                  if scriptCode ~= "" and setclipboard then
+                      setclipboard(scriptCode)
+                      Rayfield:Notify({ Title = "Copied!", Content = "Script code copied to clipboard!", Duration = 2 })
+                  else
+                      Rayfield:Notify({ Title = "Error", Content = "Clipboard function not supported or empty!", Duration = 2 })
+                  end
+               end,
+            })
+        end
+    end
+end
+
+-- Initialize default UI
+BuildScriptBloxUI(nil)
 
 ----------------------------------------------------------------
 -- TAB 3: PLAYER MOVEMENT
