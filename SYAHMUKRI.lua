@@ -1,5 +1,5 @@
 --[[
-    UNIVERSAL SCRIPT HUB (SYAH HUB V6.2 - UNLIMITED SCRIPTBLOX SEARCH)
+    UNIVERSAL SCRIPT HUB (SYAH HUB V6.4 - REAL SCRIPTBLOX CLEAR FIX)
     Optimized for All Roblox Executors (Mobile & PC)
 --]]
 
@@ -42,7 +42,7 @@ pcall(function()
 end)
 
 local Window = Rayfield:CreateWindow({
-   Name = "SYAH HUB V6.2",
+   Name = "SYAH HUB V6.4",
    LoadingTitle = "SYAH HUB Loading...",
    LoadingSubtitle = "Game: " .. gameName .. " | ScriptBlox Integrated",
    ConfigurationSaving = { Enabled = false },
@@ -194,11 +194,25 @@ UIStroke.Thickness = 1.5
 UIStroke.Parent = ScreenGui
 
 ----------------------------------------------------------------
--- TAB 2: SCRIPTBLOX SEARCH (UNLIMITED SEARCH RESULTS)
+-- TAB 2: SCRIPTBLOX SEARCH (FIXED INSTANT CLEAR & SINGLE SEARCH BAR)
 ----------------------------------------------------------------
 ScriptBloxTab:CreateSection("ScriptBlox Live Search Engine")
 
 local SearchQuery = ""
+local CreatedScriptElements = {} -- Array untuk simpan dan wipe out elemen lama
+
+local function ClearPreviousScriptBloxResults()
+    for _, element in ipairs(CreatedScriptElements) do
+        pcall(function()
+            if element and typeof(element) == "Instance" then
+                element:Destroy()
+            elseif element and type(element) == "table" and element.Destroy then
+                element:Destroy()
+            end
+        end)
+    end
+    CreatedScriptElements = {}
+end
 
 ScriptBloxTab:CreateInput({
    Name = "Search Query",
@@ -220,8 +234,7 @@ ScriptBloxTab:CreateButton({
       Rayfield:Notify({Title = "ScriptBlox API", Content = "Searching for: " .. SearchQuery .. "...", Duration = 2})
 
       task.spawn(function()
-          -- Removed max limit parameter for Unlimited Search
-          local apiUrl = "https://scriptblox.com/api/script/search?q=" .. HttpService:UrlEncode(SearchQuery)
+          local apiUrl = "https://scriptblox.com/api/script/search?q=" .. HttpService:UrlEncode(SearchQuery) .. "&max=50"
           local success, response = pcall(function()
               return game:HttpGet(apiUrl)
           end)
@@ -238,49 +251,21 @@ ScriptBloxTab:CreateButton({
                       return
                   end
 
-                  local totalCount = #scriptsList
+                  local limitCount = math.min(#scriptsList, 50)
 
-                  -- Clear old tab items cleanly (No Loop / No Stack)
-                  pcall(function()
-                      ScriptBloxTab:Clear()
-                  end)
+                  -- Padam SEMUA senarai butang skrip lama tanpa kacau kotak search kat atas
+                  ClearPreviousScriptBloxResults()
 
-                  -- Re-build Tab UI cleanly
-                  ScriptBloxTab:CreateSection("ScriptBlox Live Search Engine")
+                  local ResultsSection = ScriptBloxTab:CreateSection("Search Results (" .. limitCount .. " Found - Max 50)")
+                  table.insert(CreatedScriptElements, ResultsSection)
 
-                  ScriptBloxTab:CreateInput({
-                     Name = "Search Query",
-                     PlaceholderText = "Type game name or script (e.g. Rivals, Fly)",
-                     RemoveTextAfterFocusLost = false,
-                     Callback = function(Text)
-                        SearchQuery = Text
-                     end,
-                  })
-
-                  ScriptBloxTab:CreateButton({
-                     Name = "🔍 Search ScriptBlox Database",
-                     Callback = function() end,
-                  })
-
-                  ScriptBloxTab:CreateButton({
-                     Name = "🗑️ Clear Search Results",
-                     Callback = function()
-                        pcall(function()
-                            ScriptBloxTab:Clear()
-                        end)
-                        Rayfield:Notify({ Title = "ScriptBlox", Content = "Search results cleared!", Duration = 2 })
-                     end,
-                  })
-
-                  ScriptBloxTab:CreateSection("Search Results (" .. totalCount .. " Found - Unlimited)")
-
-                  for i = 1, totalCount do
+                  for i = 1, limitCount do
                       local scriptData = scriptsList[i]
                       local title = scriptData.title or "Unknown Script"
                       local scriptCode = scriptData.script or ""
                       local isKeyRequired = scriptData.key and " [KEY REQUIRED]" or " [NO KEY]"
 
-                      ScriptBloxTab:CreateButton({
+                      local RunBtn = ScriptBloxTab:CreateButton({
                          Name = i .. ". Run: " .. title .. isKeyRequired,
                          Callback = function()
                             if scriptCode ~= "" then
@@ -293,8 +278,9 @@ ScriptBloxTab:CreateButton({
                             end
                          end,
                       })
+                      table.insert(CreatedScriptElements, RunBtn)
 
-                      ScriptBloxTab:CreateButton({
+                      local CopyBtn = ScriptBloxTab:CreateButton({
                          Name = "📋 Copy Script Code #" .. i,
                          Callback = function()
                             if scriptCode ~= "" and setclipboard then
@@ -305,8 +291,9 @@ ScriptBloxTab:CreateButton({
                             end
                          end,
                       })
+                      table.insert(CreatedScriptElements, CopyBtn)
                   end
-                  Rayfield:Notify({ Title = "Success", Content = "Loaded ALL " .. totalCount .. " scripts!", Duration = 3 })
+                  Rayfield:Notify({ Title = "Success", Content = "Loaded " .. limitCount .. " scripts!", Duration = 3 })
               else
                   Rayfield:Notify({ Title = "ScriptBlox Error", Content = "Failed to parse ScriptBlox response.", Duration = 3 })
               end
@@ -320,10 +307,8 @@ ScriptBloxTab:CreateButton({
 ScriptBloxTab:CreateButton({
    Name = "🗑️ Clear Search Results",
    Callback = function()
-      pcall(function()
-          ScriptBloxTab:Clear()
-      end)
-      Rayfield:Notify({ Title = "ScriptBlox", Content = "Search results cleared!", Duration = 2 })
+      ClearPreviousScriptBloxResults()
+      Rayfield:Notify({ Title = "ScriptBlox", Content = "All search results cleared!", Duration = 2 })
    end,
 })
 
@@ -1505,4 +1490,3 @@ MiscTab:CreateButton({
       Rayfield:Notify({ Title = "Anti-AFK", Content = "Anti-AFK Activated!", Duration = 2 })
    end,
 })
-
