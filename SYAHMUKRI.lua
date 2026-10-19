@@ -1,5 +1,5 @@
 --[[
-    UNIVERSAL SCRIPT HUB (SYAH HUB V4.6 - UNLIMITED NUMERIC INPUTS)
+    UNIVERSAL SCRIPT HUB (SYAH HUB V4.7 - PERMANENT GAME NAME SUBTITLE)
     Optimized for Delta Mobile Executor
 --]]
 
@@ -30,7 +30,7 @@ local Lighting = game:GetService("Lighting")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Camera = workspace.CurrentCamera
 
--- Get Game Title for Subtitle only
+-- Get Game Title for Window Subtitle
 local gameName = "Universal Game"
 pcall(function()
     local info = MarketplaceService:GetProductInfo(game.PlaceId)
@@ -47,6 +47,11 @@ local Window = Rayfield:CreateWindow({
    Discord = { Enabled = false },
    KeySystem = false
 })
+
+-- Tambah Nama Game secara kekal sebagai Subtitle di bawah tajuk Hub
+pcall(function()
+    Window:Subtitle("Current Game: " .. gameName)
+end)
 
 ----------------------------------------------------------------
 -- TABS
