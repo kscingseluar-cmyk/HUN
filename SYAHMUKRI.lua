@@ -1,5 +1,5 @@
 --[[
-    UNIVERSAL SCRIPT HUB (SYAH HUB V3.9 - FULL ENGLISH & NUMERIC INPUT)
+    UNIVERSAL SCRIPT HUB (SYAH HUB V4.6 - UNLIMITED NUMERIC INPUTS)
     Optimized for Delta Mobile Executor
 --]]
 
@@ -25,11 +25,12 @@ local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Camera = workspace.CurrentCamera
 
--- Get Game Title
+-- Get Game Title for Subtitle only
 local gameName = "Universal Game"
 pcall(function()
     local info = MarketplaceService:GetProductInfo(game.PlaceId)
@@ -39,9 +40,9 @@ pcall(function()
 end)
 
 local Window = Rayfield:CreateWindow({
-   Name = "SYAH HUB V3.9 | " .. gameName,
-   LoadingTitle = "SYAH HUB V3.9 Loading...",
-   LoadingSubtitle = "Game: " .. gameName .. " | by Syah",
+   Name = "SYAH HUB",
+   LoadingTitle = "SYAH HUB Loading...",
+   LoadingSubtitle = "Game: " .. gameName .. " | ScriptBlox Integrated",
    ConfigurationSaving = { Enabled = false },
    Discord = { Enabled = false },
    KeySystem = false
@@ -53,6 +54,7 @@ local Window = Rayfield:CreateWindow({
 local MainTab = Window:CreateTab("Player Movement", 4483345998)
 local CombatTab = Window:CreateTab("Combat & Aim", 4483345998)
 local VisualsTab = Window:CreateTab("ESP & Visuals", 4483345998)
+local ScriptBloxTab = Window:CreateTab("ScriptBlox Search", 4483345998)
 local TeleportTab = Window:CreateTab("Teleport", 4483345998)
 local MiscTab = Window:CreateTab("Misc & Automations", 4483345998)
 
@@ -83,16 +85,15 @@ local AimbotMode = "Closest"
 local LockedTargetPlayer = ""
 local AimPart = "Head"
 
--- Anti-Aim & Clicker States
+-- Anti-Aim States
 local SpinbotEnabled = false
 local SpinSpeed = 50
-local AutoClickerEnabled = false
-local AutoClickerCPS = 10
 
--- Teleport Variables
+-- Teleport & Attach Variables
 local SavedCFrame = nil
 local SelectedPlayerName = ""
 local ClickTPEnabled = false
+local AttachPlayerEnabled = false
 
 ----------------------------------------------------------------
 -- SAFE FOV CIRCLE (SCREEN GUI)
@@ -124,13 +125,91 @@ UIStroke.Thickness = 1.5
 UIStroke.Parent = FOVFrame
 
 ----------------------------------------------------------------
+-- SCRIPTBLOX API INTEGRATION TAB (20 RESULTS)
+----------------------------------------------------------------
+ScriptBloxTab:CreateSection("ScriptBlox Live Search Engine")
+
+local SearchQuery = ""
+
+ScriptBloxTab:CreateInput({
+   Name = "Search Query",
+   PlaceholderText = "Type game name or script (e.g. Rivals, Fly)",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      SearchQuery = Text
+   end,
+})
+
+ScriptBloxTab:CreateButton({
+   Name = "🔍 Search ScriptBlox Database",
+   Callback = function()
+      if SearchQuery == "" then
+          Rayfield:Notify({ Title = "ScriptBlox", Content = "Please enter a search term first!", Duration = 3 })
+          return
+      end
+
+      Rayfield:Notify({ Title = "ScriptBlox API", Content = "Searching for: " .. SearchQuery .. "...", Duration = 2 })
+
+      task.spawn(function()
+          local apiUrl = "https://scriptblox.com/api/script/search?q=" .. HttpService:UrlEncode(SearchQuery) .. "&max=20"
+          local success, response = pcall(function()
+              return game:HttpGet(apiUrl)
+          end)
+
+          if success and response then
+              local decodeSuccess, data = pcall(function()
+                  return HttpService:JSONDecode(response)
+              end)
+
+              if decodeSuccess and data and data.result and data.result.scripts then
+                  local scriptsList = data.result.scripts
+                  if #scriptsList == 0 then
+                      Rayfield:Notify({ Title = "ScriptBlox", Content = "No scripts found for: " .. SearchQuery, Duration = 3 })
+                      return
+                  end
+
+                  local limitCount = math.min(#scriptsList, 20)
+                  ScriptBloxTab:CreateSection("Search Results (" .. limitCount .. " Found)")
+
+                  for i = 1, limitCount do
+                      local scriptData = scriptsList[i]
+                      local title = scriptData.title or "Unknown Script"
+                      local scriptCode = scriptData.script or ""
+                      local isKeyRequired = scriptData.key and " [KEY REQUIRED]" or " [NO KEY]"
+
+                      ScriptBloxTab:CreateButton({
+                         Name = i .. ". " .. title .. isKeyRequired,
+                         Callback = function()
+                            if scriptCode ~= "" then
+                                Rayfield:Notify({ Title = "Executing Script", Content = "Running " .. title, Duration = 2 })
+                                pcall(function()
+                                    loadstring(scriptCode)()
+                                end)
+                            else
+                                Rayfield:Notify({ Title = "Error", Content = "Script code is empty!", Duration = 2 })
+                            end
+                         end,
+                      })
+                  end
+                  Rayfield:Notify({ Title = "Success", Content = "Loaded " .. limitCount .. " scripts!", Duration = 3 })
+              else
+                  Rayfield:Notify({ Title = "ScriptBlox Error", Content = "Failed to parse ScriptBlox response.", Duration = 3 })
+              end
+          else
+              Rayfield:Notify({ Title = "ScriptBlox Error", Content = "HTTP Request failed. ScriptBlox API might be down.", Duration = 3 })
+          end
+      end)
+   end,
+})
+
+----------------------------------------------------------------
 -- PLAYER MOVEMENT TAB
 ----------------------------------------------------------------
-MainTab:CreateSection("Custom Speed & Jump")
+MainTab:CreateSection("Custom Speed & Jump (Unlimited)")
 
 MainTab:CreateInput({
    Name = "WalkSpeed",
-   PlaceholderText = "Default: 16",
+   PlaceholderText = "Type any speed...",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text)
       local num = tonumber(Text)
@@ -142,7 +221,7 @@ MainTab:CreateInput({
 
 MainTab:CreateInput({
    Name = "JumpPower",
-   PlaceholderText = "Default: 50",
+   PlaceholderText = "Type any jump power...",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text)
       local num = tonumber(Text)
@@ -196,11 +275,11 @@ LocalPlayer.CharacterAdded:Connect(function()
     InvisibleEnabled = false
 end)
 
-MainTab:CreateSection("Camera FOV Changer")
+MainTab:CreateSection("Camera FOV Changer (Unlimited)")
 
 MainTab:CreateInput({
    Name = "Camera FOV",
-   PlaceholderText = "70 - 120 (Default: 70)",
+   PlaceholderText = "Type any FOV...",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text)
       local num = tonumber(Text)
@@ -208,11 +287,11 @@ MainTab:CreateInput({
    end,
 })
 
-MainTab:CreateSection("Fly Engine")
+MainTab:CreateSection("Fly Engine (Unlimited Speed)")
 
 MainTab:CreateInput({
    Name = "Fly Speed",
-   PlaceholderText = "Enter speed (Default: 50)",
+   PlaceholderText = "Type any fly speed...",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text)
       local num = tonumber(Text)
@@ -410,8 +489,8 @@ Players.PlayerAdded:Connect(UpdateAimbotPlayerDropdown)
 Players.PlayerRemoving:Connect(UpdateAimbotPlayerDropdown)
 
 CombatTab:CreateInput({
-   Name = "FOV Radius (Pixels)",
-   PlaceholderText = "50 - 500 (Default: 150)",
+   Name = "FOV Radius (Pixels - Unlimited)",
+   PlaceholderText = "Type any radius...",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text)
       local num = tonumber(Text)
@@ -422,7 +501,7 @@ CombatTab:CreateInput({
    end,
 })
 
-CombatTab:CreateSection("Hitbox Extender")
+CombatTab:CreateSection("Hitbox Extender (Unlimited)")
 
 CombatTab:CreateToggle({
    Name = "Expand Enemy Hitbox",
@@ -442,8 +521,8 @@ CombatTab:CreateDropdown({
 })
 
 CombatTab:CreateInput({
-   Name = "Hitbox Size (Studs)",
-   PlaceholderText = "2 - 40 (Default: 10)",
+   Name = "Hitbox Size (Studs - Unlimited)",
+   PlaceholderText = "Type any size...",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text)
       local num = tonumber(Text)
@@ -705,7 +784,7 @@ TeleportTab:CreateButton({
    end,
 })
 
-TeleportTab:CreateSection("Teleport to Player")
+TeleportTab:CreateSection("Teleport & Attach to Player")
 
 local PlayerDropdown = TeleportTab:CreateDropdown({
    Name = "Select Player",
@@ -746,49 +825,48 @@ TeleportTab:CreateButton({
    end,
 })
 
-----------------------------------------------------------------
--- MISC & AUTOMATIONS TAB
-----------------------------------------------------------------
-MiscTab:CreateSection("Auto Clicker / Fast Tap")
-
-MiscTab:CreateToggle({
-   Name = "Enable Auto Clicker",
+TeleportTab:CreateToggle({
+   Name = "Attach / Follow Player (Melekat di Belakang)",
    CurrentValue = false,
-   Flag = "AutoClickerToggle",
-   Callback = function(Value) AutoClickerEnabled = Value end,
-})
-
-MiscTab:CreateInput({
-   Name = "Click Speed (Clicks Per Second)",
-   PlaceholderText = "1 - 30 (Default: 10)",
-   RemoveTextAfterFocusLost = false,
-   Callback = function(Text)
-      local num = tonumber(Text)
-      if num then AutoClickerCPS = num end
+   Flag = "AttachPlayerToggle",
+   Callback = function(Value)
+      AttachPlayerEnabled = Value
+      if AttachPlayerEnabled then
+          Rayfield:Notify({ Title = "Attach Mode", Content = "Attached to target player!", Duration = 2 })
+      else
+          Rayfield:Notify({ Title = "Attach Mode", Content = "Detached!", Duration = 2 })
+      end
    end,
 })
 
-task.spawn(function()
-    while true do
-        if AutoClickerEnabled then
-            pcall(function()
-                local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if tool then
-                    tool:Activate()
-                else
-                    local VirtualUser = game:GetService("VirtualUser")
-                    VirtualUser:CaptureController()
-                    VirtualUser:ClickButton1(Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2))
-                end
-            end)
-            task.wait(1 / math.max(AutoClickerCPS, 1))
-        else
-            task.wait(0.5)
-        end
+RunService.RenderStepped:Connect(function()
+    if AttachPlayerEnabled and SelectedPlayerName ~= "" then
+        pcall(function()
+            local targetPlayer = Players:FindFirstChild(SelectedPlayerName)
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and hrp then
+                hrp.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+            end
+        end)
     end
 end)
 
-MiscTab:CreateSection("SpinBot (Anti-Aim)")
+----------------------------------------------------------------
+-- MISC & AUTOMATIONS TAB
+----------------------------------------------------------------
+MiscTab:CreateSection("Auto Clicker (External Script)")
+
+MiscTab:CreateButton({
+   Name = "🚀 Run External Auto Clicker",
+   Callback = function()
+      pcall(function()
+          loadstring(game:HttpGet("https://raw.githubusercontent.com/kscingseluar-cmyk/HUN/main/autoclicker.lua"))()
+          Rayfield:Notify({ Title = "Auto Clicker", Content = "External Auto Clicker Loaded!", Duration = 3 })
+      end)
+   end,
+})
+
+MiscTab:CreateSection("SpinBot (Anti-Aim - Unlimited Speed)")
 
 MiscTab:CreateToggle({
    Name = "Enable SpinBot",
@@ -799,7 +877,7 @@ MiscTab:CreateToggle({
 
 MiscTab:CreateInput({
    Name = "Spin Speed",
-   PlaceholderText = "10 - 200 (Default: 50)",
+   PlaceholderText = "Type any spin speed...",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text)
       local num = tonumber(Text)
