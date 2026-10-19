@@ -1,5 +1,5 @@
 --[[
-    UNIVERSAL SCRIPT HUB (SYAH HUB V5.4 - CLEAN & OPTIMIZED)
+    UNIVERSAL SCRIPT HUB (SYAH HUB V5.7 - CLEANED SCRIPTBLOX SEARCH & FIXED)
     Optimized for Delta Mobile Executor
 --]]
 
@@ -32,7 +32,7 @@ local TweenService = game:GetService("TweenService")
 local Stats = game:GetService("Stats")
 local Camera = workspace.CurrentCamera
 
--- Get Game Title for Window Subtitle
+-- Get Game Title
 local gameName = "Universal Game"
 pcall(function()
     local info = MarketplaceService:GetProductInfo(game.PlaceId)
@@ -55,31 +55,37 @@ pcall(function()
 end)
 
 ----------------------------------------------------------------
--- FPS & PING DISPLAY COUNTER
+-- TABS
 ----------------------------------------------------------------
-local StatsGui = Instance.new("ScreenGui")
-StatsGui.Name = "SYAH_StatsGui"
-StatsGui.ResetOnSpawn = false
+local MenuTab = Window:CreateTab("Main Menu", 4483345998)          -- TAB 1
+local ScriptBloxTab = Window:CreateTab("ScriptBlox Search", 4483345998) -- TAB 2
+local MainTab = Window:CreateTab("Player Movement", 4483345998)     -- TAB 3
+local CombatTab = Window:CreateTab("Combat & Aim", 4483345998)       -- TAB 4
+local VisualsTab = Window:CreateTab("ESP & Visuals", 4483345998)     -- TAB 5
+local TeleportTab = Window:CreateTab("Teleport", 4483345998)         -- TAB 6
+local MiscTab = Window:CreateTab("Misc & Automations", 4483345998)   -- TAB 7
 
-pcall(function()
-    StatsGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
-end)
+----------------------------------------------------------------
+-- TAB 1: MAIN MENU (GAME INFO & LIVE PERFORMANCE)
+----------------------------------------------------------------
+MenuTab:CreateSection("🎮 Game Information")
 
-local StatsLabel = Instance.new("TextLabel")
-StatsLabel.Name = "StatsLabel"
-StatsLabel.Size = UDim2.new(0, 180, 0, 25)
-StatsLabel.Position = UDim2.new(0.02, 0, 0.02, 0)
-StatsLabel.BackgroundTransparency = 0.5
-StatsLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-StatsLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-StatsLabel.TextSize = 12
-StatsLabel.Font = Enum.Font.SourceSansBold
-StatsLabel.Text = "FPS: -- | Ping: -- ms"
-StatsLabel.Parent = StatsGui
+MenuTab:CreateParagraph({
+    Title = "Current Game",
+    Content = "Name: " .. gameName .. "\nPlace ID: " .. tostring(game.PlaceId)
+})
 
-local StatsCorner = Instance.new("UICorner")
-StatsCorner.CornerRadius = UDim.new(0, 6)
-StatsCorner.Parent = StatsLabel
+MenuTab:CreateSection("📊 Live Performance Stats")
+
+local FPSParagraph = MenuTab:CreateParagraph({
+    Title = "⚡ Frame Rate (FPS)",
+    Content = "Calculating FPS..."
+})
+
+local PingParagraph = MenuTab:CreateParagraph({
+    Title = "📶 Network Latency (Ping)",
+    Content = "Calculating Ping..."
+})
 
 task.spawn(function()
     local lastUpdate = os.clock()
@@ -87,28 +93,36 @@ task.spawn(function()
     RunService.RenderStepped:Connect(function()
         frames = frames + 1
         local now = os.clock()
-        if now - lastUpdate >= 1 then
+        if now - lastUpdate >= 0.5 then
             local fps = math.floor(frames / (now - lastUpdate))
             local ping = 0
             pcall(function()
                 ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
             end)
-            StatsLabel.Text = "FPS: " .. fps .. " | Ping: " .. ping .. " ms"
+            
+            pcall(function()
+                FPSParagraph:Set({
+                    Title = "⚡ Frame Rate (FPS)",
+                    Content = tostring(fps) .. " FPS"
+                })
+                PingParagraph:Set({
+                    Title = "📶 Network Latency (Ping)",
+                    Content = tostring(ping) .. " ms"
+                })
+            end)
+            
             frames = 0
             lastUpdate = now
         end
     end)
 end)
 
-----------------------------------------------------------------
--- TABS
-----------------------------------------------------------------
-local MainTab = Window:CreateTab("Player Movement", 4483345998)
-local CombatTab = Window:CreateTab("Combat & Aim", 4483345998)
-local VisualsTab = Window:CreateTab("ESP & Visuals", 4483345998)
-local ScriptBloxTab = Window:CreateTab("ScriptBlox Search", 4483345998)
-local TeleportTab = Window:CreateTab("Teleport", 4483345998)
-local MiscTab = Window:CreateTab("Misc & Automations", 4483345998)
+MenuTab:CreateSection("👤 User Details")
+
+MenuTab:CreateParagraph({
+    Title = "Account Info",
+    Content = "Username: " .. LocalPlayer.Name .. "\nDisplay Name: " .. LocalPlayer.DisplayName
+})
 
 -- Global States
 local NoclipEnabled = false
@@ -177,10 +191,10 @@ UICorner.Parent = FOVFrame
 local UIStroke = Instance.new("UIStroke")
 UIStroke.Color = Color3.fromRGB(255, 0, 50)
 UIStroke.Thickness = 1.5
-UIStroke.Parent = FOVFrame
+UIStroke.Parent = ScreenGui
 
 ----------------------------------------------------------------
--- SCRIPTBLOX API INTEGRATION TAB (WITH COPY LOADSTRING)
+-- TAB 2: SCRIPTBLOX SEARCH (AUTO CLEAR OLD RESULTS)
 ----------------------------------------------------------------
 ScriptBloxTab:CreateSection("ScriptBlox Live Search Engine")
 
@@ -203,7 +217,7 @@ ScriptBloxTab:CreateButton({
           return
       end
 
-      Rayfield:Notify({ Title = "ScriptBlox API", Content = "Searching for: " .. SearchQuery .. "...", Duration = 2 })
+      Rayfield:Notify({Title = "ScriptBlox API", Content = "Searching for: " .. SearchQuery .. "...", Duration = 2})
 
       task.spawn(function()
           local apiUrl = "https://scriptblox.com/api/script/search?q=" .. HttpService:UrlEncode(SearchQuery) .. "&max=20"
@@ -224,6 +238,28 @@ ScriptBloxTab:CreateButton({
                   end
 
                   local limitCount = math.min(#scriptsList, 20)
+
+                  -- Bersihkan tab sebelum paparkan hasil baharu supaya tak menimbun
+                  pcall(function()
+                      ScriptBloxTab:Clear()
+                  end)
+
+                  ScriptBloxTab:CreateSection("ScriptBlox Live Search Engine")
+
+                  ScriptBloxTab:CreateInput({
+                     Name = "Search Query",
+                     PlaceholderText = "Type game name or script (e.g. Rivals, Fly)",
+                     RemoveTextAfterFocusLost = false,
+                     Callback = function(Text)
+                        SearchQuery = Text
+                     end,
+                  })
+
+                  ScriptBloxTab:CreateButton({
+                     Name = "🔍 Search ScriptBlox Database",
+                     Callback = function() end,
+                  })
+
                   ScriptBloxTab:CreateSection("Search Results (" .. limitCount .. " Found)")
 
                   for i = 1, limitCount do
@@ -270,7 +306,7 @@ ScriptBloxTab:CreateButton({
 })
 
 ----------------------------------------------------------------
--- PLAYER MOVEMENT TAB
+-- TAB 3: PLAYER MOVEMENT
 ----------------------------------------------------------------
 MainTab:CreateSection("Custom Speed & Jump (Unlimited)")
 
@@ -376,9 +412,9 @@ MainTab:CreateToggle({
               char:MoveTo(Vector3.new(0, -1000, 0))
               task.wait(0.1)
               hrp.CFrame = oldCF
-              Rayfield:Notify({ Title = "Invisibility", Content = "Invisible Active!", Duration = 2 })
+              Rayfield:Notify({ Title = "Invisibility", Content = "Invisibility Active!", Duration = 2 })
           else
-              Rayfield:Notify({ Title = "Invisibility", Content = "Invisible Disabled!", Duration = 2 })
+              Rayfield:Notify({ Title = "Invisibility", Content = "Invisibility Disabled!", Duration = 2 })
           end
       end)
    end,
@@ -556,7 +592,7 @@ UserInputService.JumpRequest:Connect(function()
 end)
 
 ----------------------------------------------------------------
--- COMBAT & AIM TAB
+-- TAB 4: COMBAT & AIM
 ----------------------------------------------------------------
 CombatTab:CreateSection("Aimbot Engine")
 
@@ -785,7 +821,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 ----------------------------------------------------------------
--- VISUALS & LIGHTING TAB
+-- TAB 5: ESP & VISUALS
 ----------------------------------------------------------------
 VisualsTab:CreateSection("ESP Modes")
 
@@ -813,7 +849,7 @@ VisualsTab:CreateToggle({
 VisualsTab:CreateSection("Universal Map Lighting")
 
 VisualsTab:CreateButton({
-   Name = "☀️ Enable Fullbright (No Shadows / Dark)",
+   Name = "☀️ Enable Fullbright (No Shadows / Darkness)",
    Callback = function()
       pcall(function()
           Lighting.Ambient = Color3.fromRGB(255, 255, 255)
@@ -910,35 +946,35 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- TELEPORT TAB
+-- TAB 6: TELEPORT
 ----------------------------------------------------------------
-TeleportTab:CreateSection("Click TP Tool")
+TeleportTab:CreateSection("Click / Tap TP (Direct Screen Touch)")
 
 TeleportTab:CreateToggle({
-   Name = "Click / Tap TP (Equip Tool to Teleport)",
+   Name = "Enable Click / Tap TP",
    CurrentValue = false,
    Flag = "ClickTPToggle",
    Callback = function(Value)
       ClickTPEnabled = Value
-      local tool = LocalPlayer.Backpack:FindFirstChild("Click TP") or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Click TP"))
       if ClickTPEnabled then
-          if not tool then
-              tool = Instance.new("Tool")
-              tool.Name = "Click TP"
-              tool.RequiresHandle = false
-              tool.Activated:Connect(function()
-                  local mouse = LocalPlayer:GetMouse()
-                  if mouse and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                      LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
-                  end
-              end)
-              tool.Parent = LocalPlayer.Backpack
-          end
+          Rayfield:Notify({ Title = "Click TP", Content = "Enabled! Tap anywhere on screen to teleport.", Duration = 3 })
       else
-          if tool then tool:Destroy() end
+          Rayfield:Notify({ Title = "Click TP", Content = "Disabled!", Duration = 2 })
       end
    end,
 })
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if ClickTPEnabled and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+        pcall(function()
+            local mouse = LocalPlayer:GetMouse()
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if mouse and hrp then
+                hrp.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
+            end
+        end)
+    end
+end)
 
 TeleportTab:CreateSection("Set & TP Position")
 
@@ -1024,7 +1060,7 @@ TeleportTab:CreateButton({
 })
 
 TeleportTab:CreateToggle({
-   Name = "Attach / Follow Player (Melekat di Belakang)",
+   Name = "Attach / Follow Player (Attach Behind)",
    CurrentValue = false,
    Flag = "AttachPlayerToggle",
    Callback = function(Value)
@@ -1050,7 +1086,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 ----------------------------------------------------------------
--- MISC & AUTOMATIONS TAB
+-- TAB 7: MISC & AUTOMATIONS
 ----------------------------------------------------------------
 MiscTab:CreateSection("Auto Clicker (External Script)")
 
