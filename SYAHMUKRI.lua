@@ -1,5 +1,5 @@
 --[[
-    UNIVERSAL SCRIPT HUB (SYAH HUB V5.3 - FULLY FIXED & CLEAN)
+    UNIVERSAL SCRIPT HUB (SYAH HUB V5.4 - CLEAN & OPTIMIZED)
     Optimized for Delta Mobile Executor
 --]]
 
@@ -52,47 +52,6 @@ local Window = Rayfield:CreateWindow({
 
 pcall(function()
     Window:Subtitle("Current Game: " .. gameName)
-end)
-
-----------------------------------------------------------------
--- FLOATING UI TOGGLE BUTTON (MOBILE FRIENDLY)
-----------------------------------------------------------------
-local ToggleScreen = Instance.new("ScreenGui")
-ToggleScreen.Name = "SYAH_ToggleScreen"
-ToggleScreen.ResetOnSpawn = false
-
-pcall(function()
-    ToggleScreen.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
-end)
-
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Name = "SYAH_ToggleButton"
-ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
-ToggleBtn.Position = UDim2.new(0.02, 0, 0.2, 0)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-ToggleBtn.TextColor3 = Color3.fromRGB(255, 0, 50)
-ToggleBtn.Text = "SYAH"
-ToggleBtn.TextSize = 14
-ToggleBtn.Font = Enum.Font.SourceSansBold
-ToggleBtn.Active = true
-ToggleBtn.Draggable = true
-ToggleBtn.Parent = ToggleScreen
-
-local BtnCorner = Instance.new("UICorner")
-BtnCorner.CornerRadius = UDim.new(1, 0)
-BtnCorner.Parent = ToggleBtn
-
-local BtnStroke = Instance.new("UIStroke")
-BtnStroke.Color = Color3.fromRGB(255, 0, 50)
-BtnStroke.Thickness = 2
-BtnStroke.Parent = ToggleBtn
-
-ToggleBtn.MouseButton1Click:Connect(function()
-    if Window and Rayfield then
-        pcall(function()
-            Rayfield:SelectTab()
-        end)
-    end
 end)
 
 ----------------------------------------------------------------
@@ -174,9 +133,6 @@ local NameESPEnabled = false
 
 -- Combat States
 local AimbotEnabled = false
-local SilentAimEnabled = false
-local KillAuraEnabled = false
-local KillAuraRange = 20
 local AimbotFOV = 150
 local WallCheckEnabled = false
 local TeamCheckEnabled = false
@@ -602,20 +558,13 @@ end)
 ----------------------------------------------------------------
 -- COMBAT & AIM TAB
 ----------------------------------------------------------------
-CombatTab:CreateSection("Aimbot Engine & Silent Aim")
+CombatTab:CreateSection("Aimbot Engine")
 
 CombatTab:CreateToggle({
    Name = "Camera Aimbot",
    CurrentValue = false,
    Flag = "AimbotToggle",
    Callback = function(Value) AimbotEnabled = Value end,
-})
-
-CombatTab:CreateToggle({
-   Name = "Silent Aim (No Cam Lock)",
-   CurrentValue = false,
-   Flag = "SilentAimToggle",
-   Callback = function(Value) SilentAimEnabled = Value end,
 })
 
 CombatTab:CreateToggle({
@@ -702,57 +651,6 @@ CombatTab:CreateInput({
       end
    end,
 })
-
-CombatTab:CreateSection("Kill Aura (Auto Attack)")
-
-CombatTab:CreateToggle({
-   Name = "Enable Kill Aura",
-   CurrentValue = false,
-   Flag = "KillAuraToggle",
-   Callback = function(Value) KillAuraEnabled = Value end,
-})
-
-CombatTab:CreateInput({
-   Name = "Kill Aura Range (Studs)",
-   PlaceholderText = "Default: 20",
-   RemoveTextAfterFocusLost = false,
-   Callback = function(Text)
-      local num = tonumber(Text)
-      if num then KillAuraRange = num end
-   end,
-})
-
--- Optimized Engine Kill Aura (Hanya berjalan bila di-toggle)
-task.spawn(function()
-    while true do
-        if KillAuraEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            pcall(function()
-                local myHrp = LocalPlayer.Character.HumanoidRootPart
-                local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                        local targetHrp = player.Character.HumanoidRootPart
-                        local dist = (myHrp.Position - targetHrp.Position).Magnitude
-                        local isTeammate = TeamCheckEnabled and LocalPlayer.Team and player.Team and (LocalPlayer.Team == player.Team) and not player.Neutral
-                        
-                        if dist <= KillAuraRange and not isTeammate then
-                            if tool then
-                                tool:Activate()
-                            else
-                                local VirtualUser = game:GetService("VirtualUser")
-                                VirtualUser:CaptureController()
-                                VirtualUser:ClickButton1(Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2))
-                            end
-                        end
-                    end
-                end
-            end)
-            task.wait(0.1)
-        else
-            task.wait(0.5)
-        end
-    end
-end)
 
 CombatTab:CreateSection("Hitbox Extender (Unlimited)")
 
@@ -874,16 +772,13 @@ local function GetClosestPlayer()
     return closest
 end
 
--- Camera Aimbot & Silent Aim Hook
+-- Camera Aimbot Hook
 RunService.RenderStepped:Connect(function()
-    if AimbotEnabled or SilentAimEnabled then
+    if AimbotEnabled then
         pcall(function()
             local target = GetClosestPlayer()
             if target and target.Character and target.Character:FindFirstChild(AimPart) then
-                local targetPos = target.Character[AimPart].Position
-                if AimbotEnabled then
-                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
-                end
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character[AimPart].Position)
             end
         end)
     end
