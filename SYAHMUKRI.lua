@@ -1,5 +1,5 @@
 --[[
-    UNIVERSAL SCRIPT HUB (SYAH HUB V4.7 - PERMANENT GAME NAME SUBTITLE)
+    UNIVERSAL SCRIPT HUB (SYAH HUB V5.3 - FULLY FIXED & CLEAN)
     Optimized for Delta Mobile Executor
 --]]
 
@@ -28,6 +28,8 @@ local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
 local MarketplaceService = game:GetService("MarketplaceService")
+local TweenService = game:GetService("TweenService")
+local Stats = game:GetService("Stats")
 local Camera = workspace.CurrentCamera
 
 -- Get Game Title for Window Subtitle
@@ -48,9 +50,95 @@ local Window = Rayfield:CreateWindow({
    KeySystem = false
 })
 
--- Tambah Nama Game secara kekal sebagai Subtitle di bawah tajuk Hub
 pcall(function()
     Window:Subtitle("Current Game: " .. gameName)
+end)
+
+----------------------------------------------------------------
+-- FLOATING UI TOGGLE BUTTON (MOBILE FRIENDLY)
+----------------------------------------------------------------
+local ToggleScreen = Instance.new("ScreenGui")
+ToggleScreen.Name = "SYAH_ToggleScreen"
+ToggleScreen.ResetOnSpawn = false
+
+pcall(function()
+    ToggleScreen.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
+end)
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "SYAH_ToggleButton"
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Position = UDim2.new(0.02, 0, 0.2, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 0, 50)
+ToggleBtn.Text = "SYAH"
+ToggleBtn.TextSize = 14
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.Active = true
+ToggleBtn.Draggable = true
+ToggleBtn.Parent = ToggleScreen
+
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(1, 0)
+BtnCorner.Parent = ToggleBtn
+
+local BtnStroke = Instance.new("UIStroke")
+BtnStroke.Color = Color3.fromRGB(255, 0, 50)
+BtnStroke.Thickness = 2
+BtnStroke.Parent = ToggleBtn
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    if Window and Rayfield then
+        pcall(function()
+            Rayfield:SelectTab()
+        end)
+    end
+end)
+
+----------------------------------------------------------------
+-- FPS & PING DISPLAY COUNTER
+----------------------------------------------------------------
+local StatsGui = Instance.new("ScreenGui")
+StatsGui.Name = "SYAH_StatsGui"
+StatsGui.ResetOnSpawn = false
+
+pcall(function()
+    StatsGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
+end)
+
+local StatsLabel = Instance.new("TextLabel")
+StatsLabel.Name = "StatsLabel"
+StatsLabel.Size = UDim2.new(0, 180, 0, 25)
+StatsLabel.Position = UDim2.new(0.02, 0, 0.02, 0)
+StatsLabel.BackgroundTransparency = 0.5
+StatsLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+StatsLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+StatsLabel.TextSize = 12
+StatsLabel.Font = Enum.Font.SourceSansBold
+StatsLabel.Text = "FPS: -- | Ping: -- ms"
+StatsLabel.Parent = StatsGui
+
+local StatsCorner = Instance.new("UICorner")
+StatsCorner.CornerRadius = UDim.new(0, 6)
+StatsCorner.Parent = StatsLabel
+
+task.spawn(function()
+    local lastUpdate = os.clock()
+    local frames = 0
+    RunService.RenderStepped:Connect(function()
+        frames = frames + 1
+        local now = os.clock()
+        if now - lastUpdate >= 1 then
+            local fps = math.floor(frames / (now - lastUpdate))
+            local ping = 0
+            pcall(function()
+                ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+            end)
+            StatsLabel.Text = "FPS: " .. fps .. " | Ping: " .. ping .. " ms"
+            frames = 0
+            lastUpdate = now
+        end
+    end)
 end)
 
 ----------------------------------------------------------------
@@ -70,6 +158,9 @@ local HitboxEnabled = false
 local HitboxSize = 10
 local HitboxPart = "HumanoidRootPart"
 local InvisibleEnabled = false
+local AntiRagdollEnabled = false
+local FloatingWalkEnabled = false
+local AirPlatform = nil
 
 -- Fly States
 local ShiftFlyEnabled = false
@@ -83,6 +174,9 @@ local NameESPEnabled = false
 
 -- Combat States
 local AimbotEnabled = false
+local SilentAimEnabled = false
+local KillAuraEnabled = false
+local KillAuraRange = 20
 local AimbotFOV = 150
 local WallCheckEnabled = false
 local TeamCheckEnabled = false
@@ -130,7 +224,7 @@ UIStroke.Thickness = 1.5
 UIStroke.Parent = FOVFrame
 
 ----------------------------------------------------------------
--- SCRIPTBLOX API INTEGRATION TAB (20 RESULTS)
+-- SCRIPTBLOX API INTEGRATION TAB (WITH COPY LOADSTRING)
 ----------------------------------------------------------------
 ScriptBloxTab:CreateSection("ScriptBlox Live Search Engine")
 
@@ -183,7 +277,7 @@ ScriptBloxTab:CreateButton({
                       local isKeyRequired = scriptData.key and " [KEY REQUIRED]" or " [NO KEY]"
 
                       ScriptBloxTab:CreateButton({
-                         Name = i .. ". " .. title .. isKeyRequired,
+                         Name = i .. ". Run: " .. title .. isKeyRequired,
                          Callback = function()
                             if scriptCode ~= "" then
                                 Rayfield:Notify({ Title = "Executing Script", Content = "Running " .. title, Duration = 2 })
@@ -192,6 +286,18 @@ ScriptBloxTab:CreateButton({
                                 end)
                             else
                                 Rayfield:Notify({ Title = "Error", Content = "Script code is empty!", Duration = 2 })
+                            end
+                         end,
+                      })
+
+                      ScriptBloxTab:CreateButton({
+                         Name = "📋 Copy Script Code #" .. i,
+                         Callback = function()
+                            if scriptCode ~= "" and setclipboard then
+                                setclipboard(scriptCode)
+                                Rayfield:Notify({ Title = "Copied!", Content = "Script code copied to clipboard!", Duration = 2 })
+                            else
+                                Rayfield:Notify({ Title = "Error", Content = "Clipboard function not supported or empty!", Duration = 2 })
                             end
                          end,
                       })
@@ -234,6 +340,64 @@ MainTab:CreateInput({
           local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
           hum.UseJumpPower = true
           hum.JumpPower = num
+      end
+   end,
+})
+
+MainTab:CreateSection("Gravity, Height & Floating Walk")
+
+MainTab:CreateToggle({
+   Name = "Floating Walk (Walk on Air)",
+   CurrentValue = false,
+   Flag = "FloatingWalkToggle",
+   Callback = function(Value)
+      FloatingWalkEnabled = Value
+      if not FloatingWalkEnabled and AirPlatform then
+          AirPlatform:Destroy()
+          AirPlatform = nil
+          Rayfield:Notify({ Title = "Floating Walk", Content = "Disabled!", Duration = 2 })
+      else
+          Rayfield:Notify({ Title = "Floating Walk", Content = "Enabled! Walk on Air Active.", Duration = 2 })
+      end
+   end,
+})
+
+RunService.RenderStepped:Connect(function()
+    if FloatingWalkEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        pcall(function()
+            local hrp = LocalPlayer.Character.HumanoidRootPart
+            if not AirPlatform or not AirPlatform.Parent then
+                AirPlatform = Instance.new("Part")
+                AirPlatform.Name = "SYAH_AirPlatform"
+                AirPlatform.Size = Vector3.new(6, 1, 6)
+                AirPlatform.Transparency = 1
+                AirPlatform.Anchored = true
+                AirPlatform.CanCollide = true
+                AirPlatform.Parent = workspace
+            end
+            AirPlatform.CFrame = CFrame.new(hrp.Position.X, hrp.Position.Y - 3.5, hrp.Position.Z)
+        end)
+    end
+end)
+
+MainTab:CreateInput({
+   Name = "World Gravity",
+   PlaceholderText = "Default: 196.2",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then workspace.Gravity = num end
+   end,
+})
+
+MainTab:CreateInput({
+   Name = "HipHeight / Float Level",
+   PlaceholderText = "Default: 2 (Type higher to float)",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+          LocalPlayer.Character:FindFirstChildOfClass("Humanoid").HipHeight = num
       end
    end,
 })
@@ -377,7 +541,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-MainTab:CreateSection("Physics Modifications")
+MainTab:CreateSection("Physics Modifications & Stability")
 
 MainTab:CreateToggle({
    Name = "Noclip (Walk Through Walls)",
@@ -393,11 +557,37 @@ MainTab:CreateToggle({
    Callback = function(Value) InfiniteJumpEnabled = Value end,
 })
 
+MainTab:CreateToggle({
+   Name = "Anti-Ragdoll (Never Fall Down)",
+   CurrentValue = false,
+   Flag = "AntiRagdollToggle",
+   Callback = function(Value)
+      AntiRagdollEnabled = Value
+      if AntiRagdollEnabled then
+          Rayfield:Notify({ Title = "Anti-Ragdoll", Content = "Anti-Ragdoll Enabled!", Duration = 2 })
+      else
+          Rayfield:Notify({ Title = "Anti-Ragdoll", Content = "Anti-Ragdoll Disabled!", Duration = 2 })
+      end
+   end,
+})
+
 RunService.Stepped:Connect(function()
-    if NoclipEnabled and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
+    if LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            if AntiRagdollEnabled then
+                local state = hum:GetState()
+                if state == Enum.HumanoidStateType.Ragdoll or state == Enum.HumanoidStateType.FallingDown or state == Enum.HumanoidStateType.Physics then
+                    hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+                end
+            end
+        end
+
+        if NoclipEnabled then
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
             end
         end
     end
@@ -412,13 +602,20 @@ end)
 ----------------------------------------------------------------
 -- COMBAT & AIM TAB
 ----------------------------------------------------------------
-CombatTab:CreateSection("Aimbot Engine")
+CombatTab:CreateSection("Aimbot Engine & Silent Aim")
 
 CombatTab:CreateToggle({
    Name = "Camera Aimbot",
    CurrentValue = false,
    Flag = "AimbotToggle",
    Callback = function(Value) AimbotEnabled = Value end,
+})
+
+CombatTab:CreateToggle({
+   Name = "Silent Aim (No Cam Lock)",
+   CurrentValue = false,
+   Flag = "SilentAimToggle",
+   Callback = function(Value) SilentAimEnabled = Value end,
 })
 
 CombatTab:CreateToggle({
@@ -505,6 +702,57 @@ CombatTab:CreateInput({
       end
    end,
 })
+
+CombatTab:CreateSection("Kill Aura (Auto Attack)")
+
+CombatTab:CreateToggle({
+   Name = "Enable Kill Aura",
+   CurrentValue = false,
+   Flag = "KillAuraToggle",
+   Callback = function(Value) KillAuraEnabled = Value end,
+})
+
+CombatTab:CreateInput({
+   Name = "Kill Aura Range (Studs)",
+   PlaceholderText = "Default: 20",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then KillAuraRange = num end
+   end,
+})
+
+-- Optimized Engine Kill Aura (Hanya berjalan bila di-toggle)
+task.spawn(function()
+    while true do
+        if KillAuraEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            pcall(function()
+                local myHrp = LocalPlayer.Character.HumanoidRootPart
+                local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                        local targetHrp = player.Character.HumanoidRootPart
+                        local dist = (myHrp.Position - targetHrp.Position).Magnitude
+                        local isTeammate = TeamCheckEnabled and LocalPlayer.Team and player.Team and (LocalPlayer.Team == player.Team) and not player.Neutral
+                        
+                        if dist <= KillAuraRange and not isTeammate then
+                            if tool then
+                                tool:Activate()
+                            else
+                                local VirtualUser = game:GetService("VirtualUser")
+                                VirtualUser:CaptureController()
+                                VirtualUser:ClickButton1(Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2))
+                            end
+                        end
+                    end
+                end
+            end)
+            task.wait(0.1)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
 
 CombatTab:CreateSection("Hitbox Extender (Unlimited)")
 
@@ -626,19 +874,23 @@ local function GetClosestPlayer()
     return closest
 end
 
+-- Camera Aimbot & Silent Aim Hook
 RunService.RenderStepped:Connect(function()
-    if AimbotEnabled then
+    if AimbotEnabled or SilentAimEnabled then
         pcall(function()
             local target = GetClosestPlayer()
             if target and target.Character and target.Character:FindFirstChild(AimPart) then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character[AimPart].Position)
+                local targetPos = target.Character[AimPart].Position
+                if AimbotEnabled then
+                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+                end
             end
         end)
     end
 end)
 
 ----------------------------------------------------------------
--- VISUALS & ESP TAB
+-- VISUALS & LIGHTING TAB
 ----------------------------------------------------------------
 VisualsTab:CreateSection("ESP Modes")
 
@@ -661,6 +913,36 @@ VisualsTab:CreateToggle({
    CurrentValue = false,
    Flag = "NameESPToggle",
    Callback = function(Value) NameESPEnabled = Value end,
+})
+
+VisualsTab:CreateSection("Universal Map Lighting")
+
+VisualsTab:CreateButton({
+   Name = "☀️ Enable Fullbright (No Shadows / Dark)",
+   Callback = function()
+      pcall(function()
+          Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+          Lighting.Brightness = 2
+          Lighting.GlobalShadows = false
+          Lighting.ClockTime = 14
+      end)
+      Rayfield:Notify({ Title = "Fullbright", Content = "Map Lighting Maxed!", Duration = 2 })
+   end,
+})
+
+VisualsTab:CreateButton({
+   Name = "🌫️ Remove Fog & Atmosphere Blur",
+   Callback = function()
+      pcall(function()
+          Lighting.FogEnd = 9e9
+          for _, v in pairs(Lighting:GetDescendants()) do
+              if v:IsA("Atmosphere") or v:IsA("DepthOfFieldEffect") or v:IsA("BlurEffect") then
+                  v:Destroy()
+              end
+          end
+      end)
+      Rayfield:Notify({ Title = "Fog Removed", Content = "Map view cleared!", Duration = 2 })
+   end,
 })
 
 task.spawn(function()
@@ -777,12 +1059,28 @@ TeleportTab:CreateButton({
 })
 
 TeleportTab:CreateButton({
-   Name = "TP to Saved Position",
+   Name = "TP to Saved Position (Instant)",
    Callback = function()
       local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
       if SavedCFrame and hrp then
           hrp.CFrame = SavedCFrame
           Rayfield:Notify({ Title = "Teleport", Content = "Teleported successfully!", Duration = 2 })
+      else
+          Rayfield:Notify({ Title = "Error", Content = "Save position first!", Duration = 2 })
+      end
+   end,
+})
+
+TeleportTab:CreateButton({
+   Name = "Tween TP to Saved Position (Smooth Anti-Cheat)",
+   Callback = function()
+      local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+      if SavedCFrame and hrp then
+          local dist = (hrp.Position - SavedCFrame.Position).Magnitude
+          local time = math.clamp(dist / 60, 0.5, 10)
+          local tween = TweenService:Create(hrp, TweenInfo.new(time, Enum.EasingStyle.Linear), {CFrame = SavedCFrame})
+          tween:Play()
+          Rayfield:Notify({ Title = "Tween Teleporting...", Content = "Moving safely!", Duration = math.ceil(time) })
       else
           Rayfield:Notify({ Title = "Error", Content = "Save position first!", Duration = 2 })
       end
@@ -898,7 +1196,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-MiscTab:CreateSection("Performance Booster (Mobile Anti-Lag)")
+MiscTab:CreateSection("Performance Booster & Memory Cleaner")
 
 MiscTab:CreateButton({
    Name = "FPS Booster (Ultra Smooth)",
@@ -918,13 +1216,22 @@ MiscTab:CreateButton({
    end,
 })
 
+MiscTab:CreateButton({
+   Name = "🧹 Clean Executor RAM Memory (Anti-Crash Delta)",
+   Callback = function()
+      pcall(function()
+          collectgarbage("collect")
+      end)
+      Rayfield:Notify({ Title = "Memory Cleaned", Content = "Garbage collected! Delta RAM freed.", Duration = 2 })
+   end,
+})
+
 MiscTab:CreateSection("Server Utilities")
 
 MiscTab:CreateButton({
-   Name = "Server Hop (Join Another Server)",
+   Name = "Server Hop (Random Public Server)",
    Callback = function()
       pcall(function()
-          local HttpService = game:GetService("HttpService")
           local Api = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
           local success, result = pcall(function()
               return HttpService:JSONDecode(game:HttpGet(Api))
@@ -935,6 +1242,31 @@ MiscTab:CreateButton({
                       TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
                       break
                   end
+              end
+          end
+      end)
+   end,
+})
+
+MiscTab:CreateButton({
+   Name = "Smallest Server Hop (Low Player Count)",
+   Callback = function()
+      pcall(function()
+          local Api = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+          local success, result = pcall(function()
+              return HttpService:JSONDecode(game:HttpGet(Api))
+          end)
+          if success and result and result.data then
+              local smallestServer = nil
+              local minPlayers = 999
+              for _, server in pairs(result.data) do
+                  if server.playing < minPlayers and server.playing > 0 and server.id ~= game.JobId then
+                      minPlayers = server.playing
+                      smallestServer = server.id
+                  end
+              end
+              if smallestServer then
+                  TeleportService:TeleportToPlaceInstance(game.PlaceId, smallestServer, LocalPlayer)
               end
           end
       end)
