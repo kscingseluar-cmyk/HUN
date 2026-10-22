@@ -225,7 +225,6 @@ local function BuildScriptBloxUI(scriptsList)
           Rayfield:Notify({Title = "ScriptBlox API", Content = "Searching for: " .. SearchQuery .. "...", Duration = 2})
 
           task.spawn(function()
-              -- Tetapkan had maksimum 50 skrip
               local apiUrl = "https://scriptblox.com/api/script/search?q=" .. HttpService:UrlEncode(SearchQuery) .. "&max=50"
               local success, response = pcall(function()
                   return game:HttpGet(apiUrl)
@@ -1374,6 +1373,18 @@ RunService.RenderStepped:Connect(function()
         end)
     end
 end)
+
+MiscTab:CreateSection("External Scripts & Hubs")
+
+MiscTab:CreateButton({
+   Name = "🎯 Universal Mobile Aimbot Script",
+   Callback = function()
+      Rayfield:Notify({ Title = "Executing External Script", Content = "Loading Mobile Aimbot...", Duration = 2 })
+      pcall(function()
+          loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Aimbot-Mobile-34677"))()
+      end)
+   end,
+})
 
 MiscTab:CreateSection("Performance Booster & Memory Cleaner")
 
