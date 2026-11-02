@@ -53,9 +53,9 @@ local cornerTpShort = Instance.new("UICorner")
 cornerTpShort.CornerRadius = UDim.new(0, 25)
 cornerTpShort.Parent = tpShortcutBtn
 
--- 4. Main Frame (Hub Utama - Ditinggikan muat semua fitur)
+-- 4. Main Frame (Hub Utama)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 160, 0, 315)
+mainFrame.Size = UDim2.new(0, 165, 0, 360)
 mainFrame.Position = UDim2.new(0, 85, 0, 55)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 mainFrame.BorderSizePixel = 0
@@ -126,14 +126,14 @@ statusLabel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 statusLabel.TextSize = 9
 statusLabel.Font = Enum.Font.Gotham
-statusLabel.Text = "Status: Sedia"
+statusLabel.Text = "Status: Ready"
 statusLabel.Parent = mainFrame
 
 local cornerStatus = Instance.new("UICorner")
 cornerStatus.CornerRadius = UDim.new(0, 3)
 cornerStatus.Parent = statusLabel
 
--- Butang 1: Set Posisi
+-- Butang 1: Set Position
 local setBtn = Instance.new("TextButton")
 setBtn.Size = UDim2.new(1, -12, 0, 24)
 setBtn.Position = UDim2.new(0, 6, 0, 55)
@@ -141,7 +141,7 @@ setBtn.BackgroundColor3 = Color3.fromRGB(210, 110, 0)
 setBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 setBtn.TextSize = 10
 setBtn.Font = Enum.Font.GothamBold
-setBtn.Text = "SET POSISI"
+setBtn.Text = "SET POSITION"
 setBtn.Parent = mainFrame
 
 local cornerSet = Instance.new("UICorner")
@@ -163,7 +163,7 @@ local cornerTp = Instance.new("UICorner")
 cornerTp.CornerRadius = UDim.new(0, 3)
 cornerTp.Parent = tpBtn
 
--- Butang 3: Insta E (KEMBALI!)
+-- Butang 3: Insta E
 local instaEBtn = Instance.new("TextButton")
 instaEBtn.Size = UDim2.new(1, -12, 0, 24)
 instaEBtn.Position = UDim2.new(0, 6, 0, 111)
@@ -208,52 +208,89 @@ local cornerFly = Instance.new("UICorner")
 cornerFly.CornerRadius = UDim.new(0, 3)
 cornerFly.Parent = flyBtn
 
--- --- WIDGET / KOTAK KELAJUAN FLY (0 - 500) ---
-local flySpeedBox = Instance.new("TextBox")
-flySpeedBox.Size = UDim2.new(1, -12, 0, 22)
-flySpeedBox.Position = UDim2.new(0, 6, 0, 195)
-flySpeedBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-flySpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-flySpeedBox.TextSize = 10
-flySpeedBox.Font = Enum.Font.Gotham
-flySpeedBox.PlaceholderText = "Fly Speed (0-500)"
-flySpeedBox.Text = "50"
-flySpeedBox.Parent = mainFrame
 
-local cornerFlyBox = Instance.new("UICorner")
-cornerFlyBox.CornerRadius = UDim.new(0, 3)
-cornerFlyBox.Parent = flySpeedBox
+-- --- FUNGSI PEMBUATAN SLIDER ASING (0 - 500) ---
+local function createSlider(name, yPos, minVal, maxVal, defaultVal, callback)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -12, 0, 15)
+    label.Position = UDim2.new(0, 6, 0, yPos)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.TextSize = 9
+    label.Font = Enum.Font.GothamBold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = name .. ": " .. defaultVal
+    label.Parent = mainFrame
 
--- --- WIDGET / KOTAK WALKSPEED (0 - 500) ---
-local walkSpeedBox = Instance.new("TextBox")
-walkSpeedBox.Size = UDim2.new(1, -12, 0, 22)
-walkSpeedBox.Position = UDim2.new(0, 6, 0, 222)
-walkSpeedBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-walkSpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-walkSpeedBox.TextSize = 10
-walkSpeedBox.Font = Enum.Font.Gotham
-walkSpeedBox.PlaceholderText = "WalkSpeed (0-500)"
-walkSpeedBox.Text = "16"
-walkSpeedBox.Parent = mainFrame
+    local bgBar = Instance.new("Frame")
+    bgBar.Size = UDim2.new(1, -12, 0, 14)
+    bgBar.Position = UDim2.new(0, 6, 0, yPos + 16)
+    bgBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    bgBar.BorderSizePixel = 0
+    bgBar.Parent = mainFrame
 
-local cornerWalkBox = Instance.new("UICorner")
-cornerWalkBox.CornerRadius = UDim.new(0, 3)
-cornerWalkBox.Parent = walkSpeedBox
+    local cornerBg = Instance.new("UICorner")
+    cornerBg.CornerRadius = UDim.new(0, 4)
+    cornerBg.Parent = bgBar
 
--- Butang Apply Speed
-local applySpeedBtn = Instance.new("TextButton")
-applySpeedBtn.Size = UDim2.new(1, -12, 0, 24)
-applySpeedBtn.Position = UDim2.new(0, 6, 0, 249)
-applySpeedBtn.BackgroundColor3 = Color3.fromRGB(230, 126, 34)
-applySpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-applySpeedBtn.TextSize = 10
-applySpeedBtn.Font = Enum.Font.GothamBold
-applySpeedBtn.Text = "SET KELAJUAN"
-applySpeedBtn.Parent = mainFrame
+    local fillBar = Instance.new("Frame")
+    fillBar.Size = UDim2.new((defaultVal - minVal) / (maxVal - minVal), 0, 1, 0)
+    fillBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    fillBar.BorderSizePixel = 0
+    fillBar.Parent = bgBar
 
-local cornerApply = Instance.new("UICorner")
-cornerApply.CornerRadius = UDim.new(0, 3)
-cornerApply.Parent = applySpeedBtn
+    local cornerFill = Instance.new("UICorner")
+    cornerFill.CornerRadius = UDim.new(0, 4)
+    cornerFill.Parent = fillBar
+
+    local sliding = false
+
+    bgBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            sliding = true
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            sliding = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local posRatio = math.clamp((input.Position.X - bgBar.AbsolutePosition.X) / bgBar.AbsoluteSize.X, 0, 1)
+            fillBar.Size = UDim2.new(posRatio, 0, 1, 0)
+            local currentVal = math.floor(minVal + (maxVal - minVal) * posRatio)
+            label.Text = name .. ": " .. currentVal
+            callback(currentVal)
+        end
+    end)
+end
+
+-- Slider Fly Speed (0 - 500)
+createSlider("Fly Speed", 195, 0, 500, 50, function(val)
+    flySpeed = val
+end)
+
+-- Slider WalkSpeed (0 - 500)
+createSlider("WalkSpeed", 270, 0, 500, 16, function(val)
+    walkSpeedValue = val
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = walkSpeedValue
+        end
+    end
+end)
+
+player.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid", 3)
+    if hum then
+        hum.WalkSpeed = walkSpeedValue
+    end
+end)
 
 
 -- --- SISTEM DRAG UNTUK HUB ---
@@ -325,10 +362,10 @@ local function executeTeleport()
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if rootPart then
             rootPart.CFrame = savedPosition
-            statusLabel.Text = "Berjaya TP!"
+            statusLabel.Text = "Teleported!"
         end
     else
-        statusLabel.Text = "Set posisi dulu!"
+        statusLabel.Text = "Set position first!"
     end
 end
 
@@ -383,38 +420,6 @@ local function toggleFly()
         if bg then bg:Destroy() end
     end
 end
-
-
--- --- FUNGSI APPLY KELAJUAN ASING (FLY & WALKSPEED) ---
-applySpeedBtn.MouseButton1Click:Connect(function()
-    local parsedFly = tonumber(flySpeedBox.Text)
-    if parsedFly then
-        flySpeed = math.clamp(parsedFly, 0, 500)
-        flySpeedBox.Text = tostring(flySpeed)
-    end
-    
-    local parsedWalk = tonumber(walkSpeedBox.Text)
-    if parsedWalk then
-        walkSpeedValue = math.clamp(parsedWalk, 0, 500)
-        walkSpeedBox.Text = tostring(walkSpeedValue)
-        
-        local char = player.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.WalkSpeed = walkSpeedValue
-            end
-        end
-    end
-    statusLabel.Text = "Speed Diset!"
-end)
-
-player.CharacterAdded:Connect(function(char)
-    local hum = char:WaitForChild("Humanoid", 3)
-    if hum then
-        hum.WalkSpeed = walkSpeedValue
-    end
-end)
 
 
 -- --- FUNGSI ESP BOX + NAME + DISTANCE ---
@@ -527,7 +532,7 @@ setBtn.MouseButton1Click:Connect(function()
     if rootPart then
         savedPosition = rootPart.CFrame
         statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Posisi Diset!"
+        statusLabel.Text = "Position Saved!"
     end
 end)
 
@@ -557,16 +562,21 @@ minBtn.MouseButton1Click:Connect(function()
     instaEBtn.Visible = not isMinimized
     espBtn.Visible = not isMinimized
     flyBtn.Visible = not isMinimized
-    flySpeedBox.Visible = not isMinimized
-    walkSpeedBox.Visible = not isMinimized
-    applySpeedBtn.Visible = not isMinimized
     statusLabel.Visible = not isMinimized
     
+    for _, child in ipairs(mainFrame:GetChildren()) do
+        if child:IsA("Frame") and child ~= topBar then
+            child.Visible = not isMinimized
+        elseif child:IsA("TextLabel") and child ~= titleLabel and child ~= statusLabel then
+            child.Visible = not isMinimized
+        end
+    end
+    
     if isMinimized then
-        mainFrame.Size = UDim2.new(0, 160, 0, 24)
+        mainFrame.Size = UDim2.new(0, 165, 0, 24)
         minBtn.Text = "+"
     else
-        mainFrame.Size = UDim2.new(0, 160, 0, 315)
+        mainFrame.Size = UDim2.new(0, 165, 0, 360)
         minBtn.Text = "-"
     end
 end)
@@ -580,11 +590,12 @@ closeBtn.MouseButton1Click:Connect(function()
         instaEBtn.Visible = true
         espBtn.Visible = true
         flyBtn.Visible = true
-        flySpeedBox.Visible = true
-        walkSpeedBox.Visible = true
-        applySpeedBtn.Visible = true
         statusLabel.Visible = true
-        mainFrame.Size = UDim2.new(0, 160, 0, 315)
+        for _, child in ipairs(mainFrame:GetChildren()) do
+            if child:IsA("Frame") and child ~= topBar then child.Visible = true end
+            if child:IsA("TextLabel") and child ~= titleLabel then child.Visible = true end
+        end
+        mainFrame.Size = UDim2.new(0, 165, 0, 360)
         minBtn.Text = "-"
     end
 end)
@@ -592,4 +603,3 @@ end)
 toggleButton.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
-
